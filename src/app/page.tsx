@@ -5,8 +5,8 @@ import type { Session } from "@supabase/supabase-js";
 import {
   BookOpen, BookOpenCheck, CalendarDays, Check, ChevronDown, ChevronRight, CircleHelp,
   Clock3, FileText, FolderOpen, GraduationCap, House, Layers3, LogIn, LogOut, Menu,
-  MessageCircle, Plus, Search, Send, ShieldCheck, Sparkles, Users, UsersRound, WandSparkles,
-  X, ArrowUpRight, LockKeyhole, PenLine, Lightbulb
+  Plus, Search, ShieldCheck, Sparkles, Users, UsersRound, WandSparkles,
+  X, ArrowUpRight, PenLine, Lightbulb
 } from "lucide-react";
 import { isConfigured, supabase } from "@/lib/supabase";
 
@@ -255,7 +255,7 @@ export default function HomePage() {
           <div className="sidebar-integrity"><ShieldCheck size={16}/> Academic integrity first</div>
           <button className="account-button" onClick={() => {
             if (session && supabase) void supabase.auth.signOut();
-            else { setAuthMode("signup"); setModal("auth"); }
+            else if (supabase) { setAuthMode("signup"); setModal("auth"); } else notify("Account creation is available after Supabase is connected.");
           }}>
             <span className="avatar">{displayName[0]?.toUpperCase() || "S"}</span>
             <span className="account-text"><b>{session ? displayName : isConfigured ? "Guest student" : "Demo student"}</b><small>{session ? "My account" : isConfigured ? "Sign up to start" : "Preview workspace"}</small></span>
@@ -292,7 +292,7 @@ export default function HomePage() {
             </div>
             <div className="split-grid">
               <section className="panel"><div className="panel-heading"><div><h3>Your courses</h3><p>Keep all your classes in one place</p></div><button className="text-button" onClick={() => changePage("courses")}>View all <ArrowUpRight size={16}/></button></div>
-                {myCourseList.length ? <div className="course-list">{myCourseList.slice(0, 4).map((course, i) => <button className="course-row" key={course.id} onClick={() => { setFilterCourse(course.id); setActive("notes"); }}>
+                {myCourseList.length ? <div className="course-list">{myCourseList.slice(0, 4).map((course) => <button className="course-row" key={course.id} onClick={() => { setFilterCourse(course.id); setActive("notes"); }}>
                   <span className={"course-icon " + course.accent}><BookOpen size={22}/></span><span className="course-row-info"><b>{course.code}</b><small>{course.title}</small></span><ChevronRight size={18} className="muted-icon"/></button>)}</div> : <div className="empty-state"><BookOpen size={25}/><p>Join a course to get started!</p><button onClick={() => openModal("course")}>Join a course</button></div>}
                 <button className="dashed-button" onClick={() => openModal("course")}><Plus size={17}/> Add a course</button>
               </section>
