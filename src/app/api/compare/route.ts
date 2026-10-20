@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-export const runtime = "nodejs";
 const restricted = /(exam\s+(questions|answers|key)|quiz\s+(answers|key)|answer\s+key|midterm\s+questions|final\s+exam\s+questions|actual\s+test\s+questions)/i;
 
 export async function POST(request: NextRequest) {
