@@ -1,26 +1,159 @@
 @import "tailwindcss";
 
+/*
+  PeerNote design tokens.
+  The look is "a good notebook": warm paper, ballpoint-blue ink, and a
+  highlighter yellow for the things that matter.
+*/
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --paper: #faf8f3;
+  --surface: #ffffff;
+  --surface-2: #f3f0e8;
+  --ink: #1d1c1a;
+  --muted: #66625a;
+  --line: #e4dfd3;
+  --brand: #2c4fa3;
+  --brand-strong: #1f3a7d;
+  --brand-soft: #e6ecfa;
+  --on-brand: #ffffff;
+  --highlight: #fde68a;
+  --highlight-ink: #5c4600;
+  --success: #1f7a4d;
+  --success-soft: #e3f4ea;
+  --danger: #b42318;
+  --danger-soft: #fdecea;
+  --warning-soft: #fff4d6;
+  --ring: rgb(44 79 163 / 0.35);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --paper: #121316;
+    --surface: #1a1c21;
+    --surface-2: #22252c;
+    --ink: #eceae4;
+    --muted: #a19d94;
+    --line: #2f333b;
+    --brand: #8aa6f0;
+    --brand-strong: #b3c6f7;
+    --brand-soft: #1f2a45;
+    --on-brand: #0f1424;
+    --highlight: #6b5a12;
+    --highlight-ink: #fde68a;
+    --success: #5cc48f;
+    --success-soft: #16301f;
+    --danger: #f2887d;
+    --danger-soft: #3a1714;
+    --warning-soft: #362c0e;
+    --ring: rgb(138 166 240 / 0.45);
   }
 }
 
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+  --color-brand-soft: var(--brand-soft);
+  --color-on-brand: var(--on-brand);
+  --color-highlight: var(--highlight);
+  --color-highlight-ink: var(--highlight-ink);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-warning-soft: var(--warning-soft);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-display: var(--font-fraunces), Georgia, serif;
+}
+
+html {
+  color-scheme: light dark;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+/* Highlighter swipe used in headings. */
+.mark {
+  background: linear-gradient(transparent 55%, var(--highlight) 55%, var(--highlight) 92%, transparent 92%);
+  padding: 0 0.1em;
+  color: inherit;
+}
+
+/* Faint ruled-paper lines behind the hero. */
+.ruled {
+  background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 31px, var(--line) 31px, var(--line) 32px);
+}
+
+/* Rendered Markdown inside notes and AI answers. */
+.prose-note {
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.prose-note > * + * {
+  margin-top: 0.75em;
+}
+.prose-note h1,
+.prose-note h2,
+.prose-note h3,
+.prose-note h4 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.3;
+  margin-top: 1.3em;
+}
+.prose-note h1 { font-size: 1.5rem; }
+.prose-note h2 { font-size: 1.3rem; }
+.prose-note h3 { font-size: 1.12rem; }
+.prose-note ul { list-style: disc; padding-left: 1.4em; }
+.prose-note ol { list-style: decimal; padding-left: 1.4em; }
+.prose-note li + li { margin-top: 0.3em; }
+.prose-note li > ul,
+.prose-note li > ol { margin-top: 0.3em; }
+.prose-note a { color: var(--brand); text-decoration: underline; text-underline-offset: 2px; }
+.prose-note strong { font-weight: 650; }
+.prose-note code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--surface-2);
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+}
+.prose-note pre {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.9em 1em;
+  overflow-x: auto;
+}
+.prose-note pre code { background: none; padding: 0; }
+.prose-note blockquote {
+  border-left: 3px solid var(--highlight);
+  padding-left: 1em;
+  color: var(--muted);
+}
+.prose-note table { width: 100%; border-collapse: collapse; font-size: 0.95em; display: block; overflow-x: auto; }
+.prose-note th,
+.prose-note td { border: 1px solid var(--line); padding: 0.4em 0.6em; text-align: left; }
+.prose-note hr { border: 0; border-top: 1px solid var(--line); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

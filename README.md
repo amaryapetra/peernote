@@ -1,21 +1,53 @@
 # PeerNote
 
-PeerNote helps students in the same course find study partners and share class notes, including notes for a class they missed. Its AI compares notes from different students, fills in concepts one student missed, and suggests peers to study with.
+PeerNote helps students in the same course share class notes, catch up on lectures they missed, and find classmates to study with. AI (Claude, by Anthropic) compares notes between classmates, fills in concepts one student missed, answers questions from the class's notes, and screens every upload so PeerNote never works as a test bank.
 
 Live site: _coming soon_ (custom domain to be added)
 
-## Tech stack
+## What it does
 
-- **Frontend:** Next.js (App Router) with TypeScript and Tailwind CSS
-- **Backend and database:** Supabase (Postgres, Auth, Storage)
-- **Hosting:** Vercel, deployed from this repo's `main` branch
-- **AI features:** server-side routes only, so API keys never reach the browser
+| Feature | Where | How it works |
+| --- | --- | --- |
+| Accounts | `/signup`, `/login` | Supabase Auth (email and password, email confirmation, password reset). Everything a student creates is saved to their account. |
+| Pick up where you left off | `/dashboard` | Remembers the last course you opened and shows new classmate notes, requests, groups, and saved AI results. |
+| Courses | `/courses` | Search, join, or add a course. Each course has a 6-character join code to share. |
+| Share notes | `/courses/[id]/notes/new` | Markdown editor with preview, autosaved draft, and import from `.txt`/`.md` or a photo/PDF of handwritten notes (AI transcription). |
+| Integrity screening | every note save | Keyword scan plus an AI check. Real quiz/exam content and answer keys are rejected with a reason. Notes can only be written by the server after the check passes. |
+| Fill the gaps (AI) | a note you wrote | Compares your notes with classmates' notes from the same lecture and lists what you missed, with sources. |
+| Catch up (AI) | `/courses/[id]/catch-up` | Builds one study guide for a class date from everyone's notes. |
+| Ask the notes (AI) | `/courses/[id]/ask` | Postgres full-text search finds relevant notes; Claude answers with citations, or says the notes don't cover it. |
+| Study partners | `/partners`, course Classmates tab | Classmates ranked by shared courses, overlapping free time, and study style. Contact info is revealed only after both people agree. |
+| Study groups | course Study groups tab, `/groups/[id]` | Create or join a capped-size group with a time, place, and members-only message board. |
 
-## Team
+## Tech stack and architecture
 
-- **Project management:** Amelia, Avi
-- **Frontend and design:** Emily, Amarya
-- **Backend, testing, and deployment:** Miles, Danny
+- **Frontend and server:** Next.js 16 (App Router, Server Components, Server Actions, Cache Components) with TypeScript and Tailwind CSS 4.
+- **Database and auth:** Supabase. Postgres holds all data; Supabase Auth handles accounts. Row level security (RLS) policies enforce who can see what in the database itself, so a bug in the website can't leak another course's notes.
+- **AI:** Claude API (`@anthropic-ai/sdk`), called only from the server so the key never reaches the browser. Responses use structured outputs validated with Zod. Each student has hourly limits per AI feature.
+- **Hosting:** Vercel, deployed from this repo's `main` branch, on a custom domain.
+
+```
+src/
+  app/
+    (marketing)/     Public pages: home, about, integrity, privacy (static, indexed)
+    (auth)/          Login, sign up, password reset
+    (app)/           Signed-in app: dashboard, courses, notes, groups, partners, profile
+    actions/         Server Actions (every one re-checks who the user is)
+    api/transcribe/  Photo/PDF to Markdown
+    auth/confirm/    Landing route for email links
+    sitemap.ts, robots.ts, opengraph-image.tsx, manifest.ts
+  components/        UI pieces
+  lib/
+    ai/              Claude prompts and the shared client
+    supabase/        Server, admin, and proxy clients
+    matching.ts      Study-partner scoring
+    integrity.ts     Keyword pre-check for uploads
+  proxy.ts           Refreshes the session and redirects signed-out visitors
+supabase/
+  migrations/        Database schema, triggers, and RLS policies
+  tests/             RLS tests that run against a real Postgres
+tests/               Unit tests (Vitest)
+```
 
 ## Getting started
 
@@ -25,28 +57,82 @@ Requirements: Node.js 20 or newer, and npm.
 git clone https://github.com/amaryapetra/peernote.git
 cd peernote
 npm install
-cp .env.example .env.local   # then fill in the values from the team
+cp .env.example .env.local   # then fill in the values (see below)
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
 
-## Environment variables
+### 1. Set up Supabase (one person does this once)
 
-Copy `.env.example` to `.env.local` and get the values from the team's Supabase project. Never commit `.env.local` or any file containing real keys. The `.gitignore` already excludes `.env*` files.
+1. Create a project at [supabase.com](https://supabase.com).
+2. Open **SQL Editor**, paste the contents of `supabase/migrations/20261020000000_init.sql`, and run it. (Or with the Supabase CLI: `supabase link` then `supabase db push`.)
+3. Under **Authentication > URL Configuration**:
+   - Set **Site URL** to the live domain (for example `https://peernote.app`).
+   - Add these to **Redirect URLs**: `http://localhost:3000/**`, `https://<your-domain>/**`, and `https://*-<your-vercel-team>.vercel.app/**` for preview deployments.
+4. Under **Project Settings > API**, copy the project URL, the `anon` key, and the `service_role` key into `.env.local`.
+
+### 2. Add a Claude API key (optional but recommended)
+
+Create a key at [console.anthropic.com](https://console.anthropic.com) and set `ANTHROPIC_API_KEY`. Without it, the app still works; AI buttons explain that AI isn't set up, and uploads get the keyword integrity scan only.
+
+### Environment variables
+
+| Name | Where it's used | Secret? |
+| --- | --- | --- |
+| `NEXT_PUBLIC_SITE_URL` | Sitemap, canonical URLs, social previews, email links | No |
+| `NEXT_PUBLIC_SUPABASE_URL` | All Supabase calls | No |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | All Supabase calls (RLS applies) | No |
+| `SUPABASE_SERVICE_ROLE_KEY` | Saving notes after the integrity check | **Yes** |
+| `ANTHROPIC_API_KEY` | AI features | **Yes** |
+| `ANTHROPIC_MODEL` | Optional model override (default `claude-opus-5-5`) | No |
+
+Never commit `.env.local`. The `.gitignore` already excludes `.env*` files except `.env.example`.
+
+## Deploying (Vercel) and the custom domain
+
+1. In Vercel, **Add New > Project**, import `amaryapetra/peernote`. The framework is detected automatically.
+2. Add every variable from the table above under **Settings > Environment Variables** (Production and Preview). Set `NEXT_PUBLIC_SITE_URL` to the custom domain.
+3. Deploy. Every push to `main` deploys to production; every pull request gets a preview URL.
+4. **Custom domain:** buy a domain (for example on Namecheap or Cloudflare), then in Vercel go to **Settings > Domains**, add it, and create the DNS records Vercel shows you (an `A` record for the root domain and a `CNAME` for `www`). HTTPS is automatic once DNS updates.
+5. Back in Supabase, make sure the custom domain is the **Site URL** and is in the redirect list (step 1.3 above), or confirmation emails will link to the wrong place.
+6. After launch, submit `https://<your-domain>/sitemap.xml` in [Google Search Console](https://search.google.com/search-console).
+
+## SEO
+
+- Page titles and descriptions on every public page (`metadata` exports), with a `%s · PeerNote` title template.
+- Canonical URLs, Open Graph and Twitter cards, and a generated social preview image (`src/app/opengraph-image.tsx`).
+- `sitemap.xml` and `robots.txt` generated from `src/app/sitemap.ts` and `src/app/robots.ts`. Signed-in pages are excluded and marked `noindex`.
+- JSON-LD structured data on the home page (`WebApplication` and `FAQPage`).
+- Semantic HTML: one `h1` per page, `header`/`nav`/`main`/`footer` landmarks, labeled forms, and a skip link.
+- Public pages are prerendered as static HTML.
 
 ## Scripts
 
-| Command         | What it does                       |
-| --------------- | ---------------------------------- |
-| `npm run dev`   | Start the local dev server         |
-| `npm run build` | Create a production build          |
-| `npm run lint`  | Run ESLint                         |
-| `npx tsc --noEmit` | Type-check without emitting output |
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Start the local dev server |
+| `npm run build` | Create a production build |
+| `npm run lint` | Run ESLint |
+| `npm run typecheck` | Generate route types and type-check |
+| `npm test` | Run unit tests (Vitest) |
+| `./scripts/test-db.sh` | Apply migrations to a throwaway local Postgres and run the RLS tests |
+
+GitHub Actions runs all of these on every pull request (`.github/workflows/ci.yml`).
+
+## Changing the database
+
+Add a new file in `supabase/migrations/` (named with a timestamp so it sorts last) instead of editing the existing one, then run it in the SQL editor or with `supabase db push`. Update `src/lib/database.types.ts` to match (or regenerate it with `npx supabase gen types typescript --project-id <ref>`), and add a check to `supabase/tests/rls_test.sql` for any new policy.
+
+## Team
+
+- **Project management:** Amelia, Avi
+- **Frontend and design:** Emily, Amarya
+- **Backend, testing, and deployment:** Miles, Danny
 
 ## Workflow
 
 - Work on a branch named after the ticket, such as `feat/note-upload`.
-- Open a pull request into `main`. Vercel builds a preview for each one.
+- Open a pull request into `main`. Vercel builds a preview for each one, and CI must pass.
 - Get one approving review before merging.
 - Keep pull requests small, ideally under 300 lines.
