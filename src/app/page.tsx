@@ -282,7 +282,7 @@ export default function HomePage() {
         {toast && <div className="toast" role="status"><span>{toast}</span><button onClick={() => setToast("")} aria-label="Dismiss"><X size={15}/></button></div>}
         <main className="content">
           {active === "home" && <>
-            <div className="section-heading"><div><div className="eyebrow">YOUR LEARNING SPACE</div><h1>Hey, {greeting}! <span className="wave">✳</span></h1><p>Everything you need to make studying a little easier.</p></div><span className="today">{new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}</span></div>
+            <div className="section-heading"><div><div className="eyebrow">YOUR LEARNING SPACE</div><h1>Hey, {greeting}! <span className="wave">✳</span></h1><p>Everything you need to make studying a little easier.</p></div><span className="today">Your study space</span></div>
             <section className="hero">
               <div className="hero-copy"><span className="hero-label"><Sparkles size={14}/> MADE FOR STUDENTS, BY STUDENTS</span><h2>Better notes.<br/><em>Brighter minds.</em></h2><p>Never feel behind again. Share what you know, find what you missed, and learn with your people.</p>
                 <button className="primary-button hero-button" onClick={() => openModal("note")}>Share your notes <ArrowUpRight size={17}/></button>
