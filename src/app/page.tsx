@@ -96,8 +96,12 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    if (isConfigured && session) void refresh(session.user.id);
-    if (isConfigured && !session) { setCourses([]); setNotes([]); setGroups([]); setMembers([]); setMyCourses([]); }
+    if (!isConfigured) return;
+    const handle = window.setTimeout(() => {
+      if (session) void refresh(session.user.id);
+      else { setCourses([]); setNotes([]); setGroups([]); setMembers([]); setMyCourses([]); }
+    }, 0);
+    return () => window.clearTimeout(handle);
   }, [session, refresh]);
 
   const notify = (message: string) => setToast(message);
@@ -306,13 +310,13 @@ export default function HomePage() {
           </>}
 
           {active === "courses" && <>
-            <div className="page-title-line"><div><div className="eyebrow">STAY ON TOP OF CLASS</div><h1>My courses<span className="title-dot">.</span></h1><p>Join a course to see classmates' notes and study groups.</p></div><button className="primary-button" onClick={() => openModal("course")}><Plus size={18}/> Add a course</button></div>
-            <div className="category-heading"><h3>Courses you're in <span className="count-label">{myCourseList.length}</span></h3></div>
+            <div className="page-title-line"><div><div className="eyebrow">STAY ON TOP OF CLASS</div><h1>My courses<span className="title-dot">.</span></h1><p>Join a course to see classmates&apos; notes and study groups.</p></div><button className="primary-button" onClick={() => openModal("course")}><Plus size={18}/> Add a course</button></div>
+            <div className="category-heading"><h3>Courses you&apos;re in <span className="count-label">{myCourseList.length}</span></h3></div>
             <div className="cards-grid">{myCourseList.map((course) => <article className="course-card" key={course.id}><div className={"course-card-top " + course.accent}><span className="course-mini-tag">COURSE</span><BookOpen size={42} strokeWidth={1.5}/></div><div className="course-card-body"><b>{course.code}</b><h3>{course.title}</h3><span>{notes.filter((n) => n.course_id === course.id).length} shared notes</span><button onClick={() => {setFilterCourse(course.id); changePage("notes"); setFilterCourse(course.id);}}>View notes <ArrowUpRight size={16}/></button></div></article>)}</div>
             {!myCourseList.length && <div className="empty-state large-empty"><GraduationCap size={35}/><h3>Your courses will show up here.</h3><p>Use the button above to add your first course.</p></div>}
             <div className="category-heading second-category"><h3>Discover courses</h3><p>Explore classes other students have created</p></div>
             <div className="discover-list">{courses.filter((c) => !myCourses.includes(c.id)).map((course) => <div className="discover-row" key={course.id}><span className={"course-icon " + course.accent}><BookOpen size={22}/></span><div><b>{course.code}</b><p>{course.title}</p></div><button className="outline-button" onClick={() => void joinCourse(course)}><Plus size={16}/> Join course</button></div>)}</div>
-            {!courses.filter((c) => !myCourses.includes(c.id)).length && <p className="no-more">You're all caught up — create another course using the button above.</p>}
+            {!courses.filter((c) => !myCourses.includes(c.id)).length && <p className="no-more">You&apos;re all caught up — create another course using the button above.</p>}
           </>}
 
           {active === "notes" && <>
@@ -323,8 +327,8 @@ export default function HomePage() {
           </>}
 
           {active === "groups" && <>
-            <div className="page-title-line"><div><div className="eyebrow">FIND YOUR PEOPLE</div><h1>Study groups<span className="title-dot">.</span></h1><p>Studying is better when you don't have to do it alone.</p></div><button className="primary-button" onClick={() => openModal("group")}><Plus size={18}/> Create a group</button></div>
-            <div className="group-banner"><div className="group-banner-icon"><UsersRound size={27}/></div><div><b>Find your study circle</b><p>Join a group for a class you're taking, or start one yourself.</p></div></div>
+            <div className="page-title-line"><div><div className="eyebrow">FIND YOUR PEOPLE</div><h1>Study groups<span className="title-dot">.</span></h1><p>Studying is better when you don&apos;t have to do it alone.</p></div><button className="primary-button" onClick={() => openModal("group")}><Plus size={18}/> Create a group</button></div>
+            <div className="group-banner"><div className="group-banner-icon"><UsersRound size={27}/></div><div><b>Find your study circle</b><p>Join a group for a class you&apos;re taking, or start one yourself.</p></div></div>
             <div className="group-grid">{groups.map((group, i) => {
               const joined = members.some((m) => m.group_id === group.id && m.user_id === currentUser);
               return <article className="group-card" key={group.id}><div className="group-card-head"><span className={"group-avatar " + colorFor(i)}><UsersRound size={24}/></span><span className="course-chip">{courseOf(group.course_id)?.code || "Course"}</span></div><h3>{group.title}</h3><p>{group.description}</p><div className="group-meta"><span><CalendarDays size={16}/>{timeLabel(group.meet_at)}</span><span><GraduationCap size={16}/>{group.location}</span><span><Users size={16}/>{memberCount(group.id)} studying together</span></div><button className={joined ? "joined-button" : "primary-button"} onClick={() => void toggleGroup(group.id)}>{joined ? <><Check size={17}/> Joined · Leave</> : <>Join study group <ArrowUpRight size={17}/></>}</button></article>;
@@ -333,7 +337,7 @@ export default function HomePage() {
           </>}
 
           {active === "ai" && <>
-            <div className="page-title-line"><div><div className="eyebrow">A LITTLE EXTRA HELP</div><h1>AI note assistant<span className="title-dot">.</span></h1><p>Compare classmates' notes to spot concepts you may have missed.</p></div><span className="ai-heading-icon"><Sparkles size={27}/></span></div>
+            <div className="page-title-line"><div><div className="eyebrow">A LITTLE EXTRA HELP</div><h1>AI note assistant<span className="title-dot">.</span></h1><p>Compare classmates&apos; notes to spot concepts you may have missed.</p></div><span className="ai-heading-icon"><Sparkles size={27}/></span></div>
             <div className="ai-layout"><div className="ai-main panel"><div className="ai-intro"><span className="ai-intro-icon"><WandSparkles size={25}/></span><div><h3>Find the missing pieces</h3><p>Select two notes from the same course. PeerNote will compare their coverage.</p></div></div>
               <label className="form-label">Your first set of notes</label><select className="form-control" value={firstNote} onChange={(e) => {setFirstNote(e.target.value); setAnalysis("");}}><option value="">Choose the first note...</option>{notes.map((n) => <option key={n.id} value={n.id}>{courseOf(n.course_id)?.code} — {n.title}</option>)}</select>
               <div className="compare-connector"><span>+</span> <span>COMPARE WITH</span></div>
