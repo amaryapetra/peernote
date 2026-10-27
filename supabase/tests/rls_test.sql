@@ -133,7 +133,7 @@ select pg_temp.act('00000000-0000-0000-0000-00000000000a');
 select pg_temp.expect_fail($q$insert into ai_usage (user_id, kind) values (auth.uid(), 'ask')$q$,
   'cannot bypass quota with direct insert');
 select pg_temp.check(public.consume_ai_quota('ask'), 'first AI request allowed');
-do $
+do $quota_test$
 declare i int;
 begin
   for i in 2..30 loop
@@ -141,7 +141,7 @@ begin
       raise exception 'FAIL: quota rejected valid request %', i;
     end if;
   end loop;
-end $;
+end $quota_test$;
 select pg_temp.check(not public.consume_ai_quota('ask'), '31st AI request rejected');
 select pg_temp.check((select count(*) from ai_usage where user_id = auth.uid() and kind = 'ask') = 30,
   'quota never writes more than 30 reservations');
