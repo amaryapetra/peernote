@@ -14,10 +14,17 @@ Live site: _coming soon_ (custom domain to be added)
 | Share notes | `/courses/[id]/notes/new` | Markdown editor with preview, autosaved draft, and import from `.txt`/`.md` or a photo/PDF of handwritten notes (AI transcription). |
 | Integrity screening | every note save | Keyword scan plus an AI check. Real quiz/exam content and answer keys are rejected with a reason. Notes can only be written by the server after the check passes. |
 | Fill the gaps (AI) | a note you wrote | Compares your notes with classmates' notes from the same lecture and lists what you missed, with sources. |
-| Catch up (AI) | `/courses/[id]/catch-up` | Builds one study guide for a class date from everyone's notes. |
+| Catch up (AI) | `/courses/[id]/catch-up` | Builds a study guide from up to eight of the most-helpful notes for a class date. |
 | Ask the notes (AI) | `/courses/[id]/ask` | Postgres full-text search finds relevant notes; Claude answers with citations, or says the notes don't cover it. |
 | Study partners | `/partners`, course Classmates tab | Classmates ranked by shared courses, overlapping free time, and study style. Contact info is revealed only after both people agree. |
 | Study groups | course Study groups tab, `/groups/[id]` | Create or join a capped-size group with a time, place, and members-only message board. |
+
+## Security and rollout considerations
+
+- **Course access:** Any authenticated student can currently join any cataloged course without verifying enrollment. RLS restricts notes to joined accounts, *not* to university-verified classmates. Do not represent course membership as proof of enrollment. Decide on verified enrollment or invitation-only access before sharing sensitive material.
+- **Integrity screening:** Keyword checks always run. When an Anthropic key is configured, the entire note also receives AI screening; an AI outage prevents saving. Without an AI key, only keyword scanning runs and may miss prohibited content. No automated screen guarantees compliance with a school honor code.
+- **AI usage:** Apply every migration (including `20261027000000_atomic_ai_quota.sql`) before deploying the matching app code. AI quotas are reserved atomically in Postgres.
+- **Privacy:** Avoid uploading private or instructor-restricted content. Test with multiple accounts and live Supabase/Anthropic before a public launch.
 
 ## Tech stack and architecture
 

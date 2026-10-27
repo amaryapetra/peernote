@@ -89,8 +89,9 @@ export default async function CatchUpPage({ params, searchParams }: PageProps<"/
             <Badge tone="brand">AI</Badge>
           </div>
           <p className="mt-1 text-sm text-muted">
-            {info.count} classmate note{info.count === 1 ? "" : "s"} from this class
+            {info.count} shared note{info.count === 1 ? "" : "s"} from this class
             {info.mine ? ", including yours." : ". You don't have notes for this day."}
+            {info.count > 8 ? " The guide uses the eight most-helpful notes." : ""}
           </p>
           <div className="mt-4">
             {isAiConfigured() ? (

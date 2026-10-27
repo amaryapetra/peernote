@@ -95,15 +95,7 @@ export function NoteEditor({
   const words = values.content.trim() ? values.content.trim().split(/\s+/).length : 0;
 
   return (
-    <form
-      action={action}
-      className="space-y-5"
-      onSubmit={() => {
-        try {
-          if (draftKey) localStorage.removeItem(draftKey);
-        } catch {}
-      }}
-    >
+    <form action={action} className="space-y-5">
       <input type="hidden" name="courseId" value={courseId} />
       {noteId && <input type="hidden" name="noteId" value={noteId} />}
 
