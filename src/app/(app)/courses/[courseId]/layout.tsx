@@ -1,5 +1,6 @@
 import { Suspense } from "react";
-import { joinCourse, leaveCourse } from "@/app/actions/courses";
+import Link from "next/link";
+import { leaveCourse } from "@/app/actions/courses";
 import { CopyButton } from "@/components/copy-button";
 import { CourseTabs, TrackCourseVisit } from "@/components/course-tabs";
 import { SubmitButton } from "@/components/form";
@@ -62,10 +63,9 @@ export default async function CourseLayout({ children, params }: LayoutProps<"/c
           <p className="mt-2 text-sm text-muted">
             Notes, classmates, and study groups are only visible to students in the course.
           </p>
-          <form action={joinCourse} className="mt-5">
-            <input type="hidden" name="courseId" value={course.id} />
-            <SubmitButton pendingText="Joining…">Join this course</SubmitButton>
-          </form>
+          <Link href="/courses#join-with-code" className="mt-5 inline-block text-sm font-medium text-brand hover:underline">
+            Enter a classmate&apos;s invite code to join
+          </Link>
         </Card>
       )}
     </div>
