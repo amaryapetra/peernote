@@ -35,7 +35,8 @@ async function siteOrigin(): Promise<string> {
 
 const SignupSchema = z.object({
   fullName: z.string().trim().min(2, "Enter your name.").max(80),
-  email: z.email("Enter a valid email address.").trim().toLowerCase(),
+  email: z.email("Enter a valid email address.").trim().toLowerCase()
+    .refine((email) => /^[^@\s]+@tulane\.edu$/.test(email), "Sign up with your @tulane.edu email address."),
   password: z.string().min(8, "Use at least 8 characters.").max(72),
 });
 

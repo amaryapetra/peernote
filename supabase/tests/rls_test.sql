@@ -203,4 +203,12 @@ values ('10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-0000000
   '../x', 'x', '10000000-0000-0000-0000-000000000001/a/x')$q$, 'file type must be a plain extension');
 reset role;
 
+-- Authentication signup restriction: valid university emails only.
+select pg_temp.expect_fail($q$insert into auth.users (id,email) values ('a0000000-0000-0000-0000-000000000001','outsider@gmail.com')$q$, 'reject non-Tulane signup');
+select pg_temp.expect_fail($q$insert into auth.users (id,email) values ('a0000000-0000-0000-0000-000000000002','student@tulane.edu.evil.com')$q$, 'reject misleading Tulane suffix');
+select pg_temp.expect_fail($q$insert into auth.users (id,email) values ('a0000000-0000-0000-0000-000000000003',null)$q$, 'reject account without email');
+insert into auth.users (id,email) values ('a0000000-0000-0000-0000-000000000004','student@tulane.edu');
+select pg_temp.check((select count(*) from auth.users where id='a0000000-0000-0000-0000-000000000004') = 1, 'allow Tulane signup');
+select pg_temp.check((select count(*) from auth.users where email='a@tulane.edu') = 1, 'existing accounts preserved');
+
 \echo ALL_RLS_TESTS_PASSED
