@@ -156,3 +156,8 @@ Add a new file in `supabase/migrations/` (named with a timestamp so it sorts las
 - Open a pull request into `main`. Vercel builds a preview for each one, and CI must pass.
 - Get one approving review before merging.
 - Keep pull requests small, ideally under 300 lines.
+
+
+### University email access
+
+New PeerNote signups must use an email ending in exactly `@tulane.edu`. The signup form validates this and `20261029180000_tulane_only_signup.sql` adds a `BEFORE INSERT` trigger on `auth.users` so direct Supabase Auth requests cannot bypass it. Existing accounts are not changed. Keep email verification enabled to establish ownership of a university address.
