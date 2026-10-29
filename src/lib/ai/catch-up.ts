@@ -22,7 +22,7 @@ export type CatchUpResult = Omit<z.infer<typeof CatchUpSchema>, "sections"> & {
   sections: { heading: string; body: string; source_note_ids: string[] }[];
 };
 
-const SYSTEM = `A college student missed a class. Combine their classmates' notes from that day into one clear, well-organized study guide so they can catch up.
+const SYSTEM = `A college student missed a class. Combine their classmates' notes and authorized lecture slides from that day into one clear, well-organized study guide so they can catch up.
 
 Merge overlapping notes, keep every substantive idea, and resolve small differences sensibly. Where classmates contradict each other, say so rather than guessing. Don't invent material that isn't supported by the notes; if the notes are thin, keep the guide short and say what seems to be missing.
 

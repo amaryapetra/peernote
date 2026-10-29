@@ -22,6 +22,11 @@ export default async function CatchUpPage({ params, searchParams }: PageProps<"/
     .order("lecture_date", { ascending: false })
     .limit(1000);
 
+  // AI-approved materials can supply a guide even for dates with no peer notes.
+  const { data: materials } = await supabase.from("course_materials")
+    .select("lecture_date").eq("course_id", course.id)
+    .eq("ai_allowed", true).neq("extracted_text", "").limit(1000);
+
   const dates = new Map<string, { count: number; mine: boolean }>();
   for (const row of rows ?? []) {
     const d = dates.get(row.lecture_date) ?? { count: 0, mine: false };
@@ -29,12 +34,17 @@ export default async function CatchUpPage({ params, searchParams }: PageProps<"/
     if (row.author_id === user.id) d.mine = true;
     dates.set(row.lecture_date, d);
   }
-  const dateList = [...dates.entries()];
+  for (const material of materials ?? []) {
+    const d = dates.get(material.lecture_date) ?? { count: 0, mine: false };
+    d.count += 1;
+    dates.set(material.lecture_date, d);
+  }
+  const dateList = [...dates.entries()].sort(([a], [b]) => b.localeCompare(a));
 
   if (dateList.length === 0) {
     return (
-      <EmptyState title="No notes to catch up from yet" action={<ButtonLink href={`/courses/${course.id}/notes/new`}>Share notes</ButtonLink>}>
-        Once classmates share notes for a lecture, you can turn them into a catch-up guide here.
+      <EmptyState title="No materials to catch up from yet" action={<ButtonLink href={`/courses/${course.id}/notes/new`}>Share notes</ButtonLink>}>
+        Once classmates share notes or AI-approved lecture slides, you can build a catch-up guide here.
       </EmptyState>
     );
   }
@@ -89,9 +99,9 @@ export default async function CatchUpPage({ params, searchParams }: PageProps<"/
             <Badge tone="brand">AI</Badge>
           </div>
           <p className="mt-1 text-sm text-muted">
-            {info.count} shared note{info.count === 1 ? "" : "s"} from this class
+            {info.count} shared note{info.count === 1 ? "" : "s"} or approved slide source{info.count === 1 ? "" : "s"} from this class
             {info.mine ? ", including yours." : ". You don't have notes for this day."}
-            {info.count > 8 ? " The guide uses the eight most-helpful notes." : ""}
+            The guide uses up to eight notes and four approved slide files.
           </p>
           <div className="mt-4">
             {isAiConfigured() ? (
@@ -104,7 +114,7 @@ export default async function CatchUpPage({ params, searchParams }: PageProps<"/
 
         {guide ? (
           <div>
-            <p className="mb-4 text-xs text-muted">Guide built {formatDate(guide.created_at)} from {guide.source_note_ids.length} notes. Saved to your account.</p>
+            <p className="mb-4 text-xs text-muted">Guide built {formatDate(guide.created_at)} from {guide.source_note_ids.length} shared sources. Saved to your account.</p>
             <CatchUpView result={guide.content as unknown as CatchUpResult} notes={sources} />
           </div>
         ) : (

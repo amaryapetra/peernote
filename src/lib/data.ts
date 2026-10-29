@@ -38,13 +38,19 @@ export function courseLabel(course: { code: string; title: string }): string {
 
 /** Titles and authors for notes an AI result cites, keyed by note ID. */
 export async function getSourceNotes(ids: string[]) {
-  const map = new Map<string, { id: string; title: string; author: string }>();
+  const map = new Map<string, { id: string; title: string; author: string; href: string }>();
   const unique = [...new Set(ids)].filter(Boolean);
   if (!unique.length) return map;
   const supabase = await createClient();
-  const { data } = await supabase.from("notes").select("id, title, author:profiles!notes_author_id_fkey(full_name)").in("id", unique);
-  for (const n of data ?? []) {
-    map.set(n.id, { id: n.id, title: n.title, author: n.author?.full_name?.split(" ")[0] || "A classmate" });
+  const [{ data: notes }, { data: materials }] = await Promise.all([
+    supabase.from("notes").select("id, title, author:profiles!notes_author_id_fkey(full_name)").in("id", unique),
+    supabase.from("course_materials").select("id, title, course_id").in("id", unique).eq("ai_allowed", true),
+  ]);
+  for (const n of notes ?? []) {
+    map.set(n.id, { id: n.id, title: n.title, author: n.author?.full_name?.split(" ")[0] || "A classmate", href: `/notes/${n.id}` });
+  }
+  for (const m of materials ?? []) {
+    map.set(m.id, { id: m.id, title: m.title, author: "Course material", href: `/courses/${m.course_id}/materials#material-${m.id}` });
   }
   return map;
 }
