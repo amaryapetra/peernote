@@ -19,6 +19,11 @@ Live site: _coming soon_ (custom domain to be added)
 | Ask the notes (AI) | `/courses/[id]/ask` | Postgres full-text search finds relevant notes; Claude answers with citations, or says the notes don't cover it. |
 | Study partners | `/partners`, course Classmates tab | Classmates ranked by shared courses, overlapping free time, and study style. Contact info is revealed only after both people agree. |
 | Study groups | course Study groups tab, `/groups/[id]` | Create or join a capped-size group with a time, place, and members-only message board. |
+| Video study room | `/courses/[id]/video` | Enrolled course members can launch an embedded Jitsi Meet video call for their class, including screen sharing and chat. |
+
+## Video study room notes
+
+The course's **Video study room** tab embeds Jitsi Meet after the user chooses to join. No API key or additional package is required. Each class has its own meeting name, derived from the course ID and current invite code. Only enrolled students can get the link inside PeerNote, but **the external Jitsi room is not access-controlled by Supabase**: someone with the meeting URL may join. Treat the link as sensitive; do not use the room for confidential information. Jitsi may require a host to authenticate depending on its current service policy. Test camera/microphone permissions, iframe availability, and multiple simultaneous browsers on the deployment domain before relying on this feature.
 
 ## Security and rollout considerations
 
