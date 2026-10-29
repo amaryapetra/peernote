@@ -113,7 +113,7 @@ export type Database = {
           description: string;
           lecture_date: string;
           source_type: "file" | "link";
-          file_type: "pdf" | "pptx" | null;
+          file_type: string | null;
           file_name: string | null;
           storage_path: string | null;
           link_url: string | null;
@@ -130,7 +130,7 @@ export type Database = {
           description?: string;
           lecture_date: string;
           source_type: "file" | "link";
-          file_type?: "pdf" | "pptx" | null;
+          file_type?: string | null;
           file_name?: string | null;
           storage_path?: string | null;
           link_url?: string | null;

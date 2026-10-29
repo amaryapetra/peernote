@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { isInlineType } from "@/lib/material-files";
 
 
 /** Short-lived private URL, generated only for enrolled course members. */
@@ -19,7 +20,9 @@ export async function GET(_request: NextRequest, context: RouteContext<"/api/mat
     .select("course_id").eq("course_id", item.course_id).eq("user_id", user.id).maybeSingle();
   if (!enrollment) return new NextResponse("Not found", { status: 404 });
   const { data, error } = await supabase.storage.from("course-materials").createSignedUrl(
-    item.storage_path, 60, item.file_type === "pptx" ? { download: item.file_name ?? true } : undefined,
+    item.storage_path, 60,
+    // PDFs and images open in the browser; every other file type is downloaded.
+    isInlineType(item.file_type) ? undefined : { download: item.file_name ?? true },
   );
   if (error || !data?.signedUrl) return new NextResponse("Couldn't open the file.", { status: 502 });
   const response = NextResponse.redirect(data.signedUrl);
