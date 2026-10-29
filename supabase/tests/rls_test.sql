@@ -161,4 +161,35 @@ select pg_temp.check(not has_function_privilege('anon', 'public.join_course_by_c
 select pg_temp.check(not has_function_privilege('authenticated', 'public.enroll_course_creator()', 'EXECUTE'), 'trigger function is not a public RPC');
 select pg_temp.check((select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='touch_updated_at' and 'search_path=pg_catalog' = any(p.proconfig)) = 1, 'timestamp trigger search path fixed');
 
+-- Course materials: metadata, private storage, and sharing restrictions.
+set role service_role;
+insert into course_materials (
+  id, course_id, uploaded_by, title, lecture_date, source_type,
+  file_type, file_name, storage_path, ai_allowed, extracted_text
+) values (
+  '50000000-0000-0000-0000-000000000001',
+  '10000000-0000-0000-0000-000000000001',
+  '00000000-0000-0000-0000-00000000000a',
+  'Authorized lecture slides', '2026-10-01', 'file',
+  'pdf', 'lecture.pdf', '10000000-0000-0000-0000-000000000001/a/lecture.pdf', true,
+  'These slides explain eigenvectors.'
+);
+insert into storage.objects(bucket_id, name) values
+('course-materials', '10000000-0000-0000-0000-000000000001/a/lecture.pdf');
+reset role;
+select pg_temp.act('00000000-0000-0000-0000-00000000000c');
+select pg_temp.check((select count(*) from course_materials) = 1, 'course member reads materials');
+select pg_temp.check((select count(*) from storage.objects where bucket_id='course-materials') = 1, 'course member reads private slide');
+select pg_temp.expect_fail($q$insert into course_materials(course_id,uploaded_by,title,lecture_date,source_type,link_url) values
+('10000000-0000-0000-0000-000000000001', auth.uid(), 'Direct link','2026-10-01','link','https://example.com')$q$, 'cannot bypass permission acknowledgement');
+select pg_temp.expect_fail($q$insert into storage.objects(bucket_id,name) values ('course-materials','fake')$q$, 'clients cannot upload storage objects directly');
+reset role;
+select pg_temp.act('00000000-0000-0000-0000-00000000000b');
+select pg_temp.check((select count(*) from course_materials) = 0, 'former course member cannot read material rows');
+select pg_temp.check((select count(*) from storage.objects where bucket_id='course-materials') = 0, 'former course member cannot read private slides');
+reset role;
+set role anon;
+select pg_temp.expect_fail($q$select * from course_materials$q$, 'anonymous materials blocked');
+reset role;
+
 \echo ALL_RLS_TESTS_PASSED
