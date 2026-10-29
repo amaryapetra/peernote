@@ -2,7 +2,6 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
-export const dynamic = "force-dynamic";
 
 /** Short-lived private URL, generated only for enrolled course members. */
 export async function GET(_request: NextRequest, context: RouteContext<"/api/materials/[materialId]">) {
