@@ -36,8 +36,8 @@ select pg_temp.check((select count(*) from contact_cards) = 3, 'signup trigger c
 
 -- A creates a course
 select pg_temp.act('00000000-0000-0000-0000-00000000000a');
-insert into courses (id, code, title, term, instructor, created_by)
-  values ('10000000-0000-0000-0000-000000000001','MATH 3090','Linear Algebra','Fall 2026','Prof. Lee','00000000-0000-0000-0000-00000000000a');
+insert into courses (id, code, title, term, instructor, created_by, join_code)
+  values ('10000000-0000-0000-0000-000000000001','MATH 3090','Linear Algebra','Fall 2026','Prof. Lee','00000000-0000-0000-0000-00000000000a','ABCDEF123456');
 select pg_temp.check((select members_count from courses where id='10000000-0000-0000-0000-000000000001') = 1, 'creator auto-enrolled, count=1');
 select pg_temp.expect_fail($q$insert into courses (code,title,term,created_by) values ('X 1','Fake course','Fall 2026','00000000-0000-0000-0000-00000000000b')$q$, 'cannot create course as someone else');
 select pg_temp.expect_fail($q$update courses set members_count = 999$q$, 'cannot edit counters');
@@ -54,12 +54,18 @@ select pg_temp.check((select notes_count from courses where id='10000000-0000-00
 
 -- B is not enrolled
 select pg_temp.act('00000000-0000-0000-0000-00000000000b');
-select pg_temp.check((select count(*) from courses) = 1, 'catalog visible to non-members');
+select pg_temp.check((select count(*) from courses) = 0, 'course rows and invite codes hidden from non-members');
+select pg_temp.check((select count(*) from search_courses('MATH',20)) = 1, 'search finds course without leaking its invite code');
+select pg_temp.check((select count(*) from search_courses('DOESNOTEXIST',20)) = 0, 'search respects query');
+select pg_temp.expect_fail($q$select join_code from search_courses('MATH',20)$q$, 'catalog RPC never returns join codes');
 select pg_temp.check((select count(*) from notes) = 0, 'non-member cannot read notes');
 select pg_temp.check((select count(*) from profiles where id <> auth.uid()) = 0, 'non-classmate profiles hidden');
 select pg_temp.expect_fail($q$insert into connections (requester_id, addressee_id) values ('00000000-0000-0000-0000-00000000000b','00000000-0000-0000-0000-00000000000a')$q$, 'cannot request non-classmate');
 select pg_temp.expect_fail($q$insert into enrollments (user_id, course_id) values ('00000000-0000-0000-0000-00000000000c','10000000-0000-0000-0000-000000000001')$q$, 'cannot enroll someone else');
-insert into enrollments (user_id, course_id) values ('00000000-0000-0000-0000-00000000000b','10000000-0000-0000-0000-000000000001');
+select pg_temp.expect_fail($q$insert into enrollments (user_id, course_id) values (auth.uid(),'10000000-0000-0000-0000-000000000001')$q$, 'cannot self-enroll without a code');
+select pg_temp.check(public.join_course_by_code('ABCDEF000000') is null, 'wrong code rejected');
+select pg_temp.check((select count(*) from notes) = 0, 'wrong code cannot expose notes');
+select pg_temp.check(public.join_course_by_code('ABCDEF123456') = '10000000-0000-0000-0000-000000000001'::uuid, 'valid code grants enrollment');
 select pg_temp.check((select count(*) from notes) = 1, 'member can read notes');
 select pg_temp.check((select count(*) from profiles) = 2, 'classmate profile visible');
 select pg_temp.check((select count(*) from contact_cards) = 1, 'classmate contact hidden before connecting');
@@ -103,7 +109,7 @@ insert into group_members (group_id, user_id) values ('40000000-0000-0000-0000-0
 select pg_temp.check((select count(*) from group_posts) = 1, 'member reads group posts');
 reset role;
 select pg_temp.act('00000000-0000-0000-0000-00000000000c');
-insert into enrollments (user_id, course_id) values ('00000000-0000-0000-0000-00000000000c','10000000-0000-0000-0000-000000000001');
+select pg_temp.check(public.join_course_by_code('ABCDEF123456') = '10000000-0000-0000-0000-000000000001'::uuid, 'second classmate joins with invite code');
 select pg_temp.check((select count(*) from study_groups) = 1, 'member sees groups after joining course');
 select pg_temp.expect_fail($q$insert into group_members (group_id, user_id) values ('40000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-00000000000c')$q$, 'group full');
 select pg_temp.check((select count(*) from contact_cards) = 1, 'classmate still cannot see contacts without connection');
@@ -147,5 +153,12 @@ select pg_temp.check((select count(*) from ai_usage where user_id = auth.uid() a
   'quota never writes more than 30 reservations');
 select pg_temp.expect_fail($q$select public.consume_ai_quota('invalid')$q$, 'unknown AI usage kind rejected');
 reset role;
+
+-- Function hardening must not break RLS helpers or database triggers.
+select pg_temp.check(not has_function_privilege('anon', 'public.is_enrolled(uuid)', 'EXECUTE'), 'anonymous cannot execute RLS helper');
+select pg_temp.check(has_function_privilege('authenticated', 'public.is_enrolled(uuid)', 'EXECUTE'), 'RLS helper remains callable by members');
+select pg_temp.check(not has_function_privilege('anon', 'public.join_course_by_code(text)', 'EXECUTE'), 'anonymous cannot join through RPC');
+select pg_temp.check(not has_function_privilege('authenticated', 'public.enroll_course_creator()', 'EXECUTE'), 'trigger function is not a public RPC');
+select pg_temp.check((select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='touch_updated_at' and 'search_path=pg_catalog' = any(p.proconfig)) = 1, 'timestamp trigger search path fixed');
 
 \echo ALL_RLS_TESTS_PASSED

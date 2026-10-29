@@ -21,9 +21,10 @@ Live site: _coming soon_ (custom domain to be added)
 
 ## Security and rollout considerations
 
-- **Course access:** Any authenticated student can currently join any cataloged course without verifying enrollment. RLS restricts notes to joined accounts, *not* to university-verified classmates. Do not represent course membership as proof of enrollment. Decide on verified enrollment or invitation-only access before sharing sensitive material.
+- **Course access:** Course metadata is searchable, but an invite code is required before joining and reading notes. Only members can view or share their course's code. PeerNote does not independently verify university enrollment; share codes only with classmates.
 - **Integrity screening:** Keyword checks always run. When an Anthropic key is configured, the entire note also receives AI screening; an AI outage prevents saving. Without an AI key, only keyword scanning runs and may miss prohibited content. No automated screen guarantees compliance with a school honor code.
 - **AI usage:** Apply every migration (including `20261027000000_atomic_ai_quota.sql`) before deploying the matching app code. AI quotas are reserved atomically in Postgres.
+- **Invite-code rollout:** Apply `20261029160000_secure_course_invites.sql` with the corresponding app release. It rotates previously exposed six-character codes to twelve characters and blocks direct enrollments. Existing members retain access; old shared codes stop working. The app does not collect Canvas screenshots.
 - **Privacy:** Avoid uploading private or instructor-restricted content. Test with multiple accounts and live Supabase/Anthropic before a public launch.
 
 ## Tech stack and architecture

@@ -20,11 +20,6 @@ const CourseSchema = z.object({
   school: z.string().trim().min(2).max(120),
 });
 
-/** Match text exactly (case-insensitive) in an ILIKE filter. */
-function escapeLike(value: string): string {
-  return value.replace(/[\\%_]/g, (ch) => `\\${ch}`);
-}
-
 export async function createCourse(_prev: FormState, formData: FormData): Promise<FormState> {
   const user = await requireUser();
   const values = Object.fromEntries(["code", "title", "term", "instructor", "school"].map((k) => [k, String(formData.get(k) ?? "")]));
@@ -48,42 +43,22 @@ export async function createCourse(_prev: FormState, formData: FormData): Promis
 
   if (error) {
     if (error.code === "23505") {
-      // Same course already exists: join it instead of making a duplicate.
-      const { data: existing } = await supabase
-        .from("courses")
-        .select("id")
-        .ilike("code", escapeLike(parsed.data.code))
-        .ilike("term", escapeLike(parsed.data.term))
-        .ilike("instructor", escapeLike(parsed.data.instructor))
-        .ilike("school", escapeLike(parsed.data.school))
-        .maybeSingle();
-      if (existing) {
-        await supabase.from("enrollments").upsert({ user_id: user.id, course_id: existing.id }, { ignoreDuplicates: true });
-        redirect(`/courses/${existing.id}?joined=1`);
-      }
+      return { values, error: "This class already exists. Ask an enrolled classmate for its invite code, then join below." };
     }
     return { values, error: "Couldn't create that course. Try again." };
   }
   redirect(`/courses/${data.id}?created=1`);
 }
 
-export async function joinCourse(formData: FormData) {
-  const user = await requireUser();
-  const courseId = String(formData.get("courseId") ?? "");
-  const supabase = await createClient();
-  await supabase.from("enrollments").upsert({ user_id: user.id, course_id: courseId }, { ignoreDuplicates: true });
-  redirect(`/courses/${courseId}?joined=1`);
-}
-
 export async function joinByCode(_prev: FormState, formData: FormData): Promise<FormState> {
-  const user = await requireUser();
+  await requireUser();
   const code = String(formData.get("code") ?? "").trim().toUpperCase();
-  if (!/^[A-Z0-9]{6}$/.test(code)) return { values: { code }, error: "Join codes are 6 letters and numbers." };
+  if (!/^[A-F0-9]{12}$/.test(code)) return { values: { code }, error: "Invite codes are 12 letters (A-F) and numbers." };
   const supabase = await createClient();
-  const { data: course } = await supabase.from("courses").select("id").eq("join_code", code).maybeSingle();
-  if (!course) return { values: { code }, error: "No course has that join code. Double-check it with your classmate." };
-  await supabase.from("enrollments").upsert({ user_id: user.id, course_id: course.id }, { ignoreDuplicates: true });
-  redirect(`/courses/${course.id}?joined=1`);
+  const { data: courseId, error } = await supabase.rpc("join_course_by_code", { p_code: code });
+  if (error) return { values: { code }, error: "Couldn't join right now. Please try again." };
+  if (!courseId) return { values: { code }, error: "Invalid invite code. Ask an enrolled classmate for the current code." };
+  redirect(`/courses/${courseId}?joined=1`);
 }
 
 export async function leaveCourse(formData: FormData) {
