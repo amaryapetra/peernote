@@ -159,6 +159,6 @@ select pg_temp.check(not has_function_privilege('anon', 'public.is_enrolled(uuid
 select pg_temp.check(has_function_privilege('authenticated', 'public.is_enrolled(uuid)', 'EXECUTE'), 'RLS helper remains callable by members');
 select pg_temp.check(not has_function_privilege('anon', 'public.join_course_by_code(text)', 'EXECUTE'), 'anonymous cannot join through RPC');
 select pg_temp.check(not has_function_privilege('authenticated', 'public.enroll_course_creator()', 'EXECUTE'), 'trigger function is not a public RPC');
-select pg_temp.check((select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='touch_updated_at' and 'search_path=pg_catalog' = any(p.proconfig)), 'timestamp trigger search path fixed');
+select pg_temp.check((select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='touch_updated_at' and 'search_path=pg_catalog' = any(p.proconfig)) = 1, 'timestamp trigger search path fixed');
 
 \echo ALL_RLS_TESTS_PASSED
