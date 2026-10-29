@@ -12,7 +12,7 @@ export default function SignupPage() {
   return (
     <>
       <h1 className="font-display text-2xl font-semibold">Create your account</h1>
-      <p className="mb-6 mt-1 text-sm text-muted">Free for students. Takes about a minute.</p>
+      <p className="mb-6 mt-1 text-sm text-muted">For Tulane students with an @tulane.edu email address.</p>
       <SignupForm />
       <p className="mt-6 text-center text-sm text-muted">
         Already have an account?{" "}
