@@ -10,7 +10,7 @@ Live site: _coming soon_ (custom domain to be added)
 | --- | --- | --- |
 | Accounts | `/signup`, `/login` | Supabase Auth (email and password, email confirmation, password reset). Everything a student creates is saved to their account. |
 | Pick up where you left off | `/dashboard` | Remembers the last course you opened and shows new classmate notes, requests, groups, and saved AI results. |
-| Courses | `/courses` | Search, join, or add a course. Each course has a 6-character join code to share. |
+| Courses | `/courses` | Organize joined courses into expandable semester folders; search for a course or add one. Joining a class requires its private 12-character invite code. |
 | Share notes | `/courses/[id]/notes/new` | Markdown editor with preview, autosaved draft, and import from `.txt`/`.md` or a photo/PDF of handwritten notes (AI transcription). |
 | Integrity screening | every note save | Keyword scan plus an AI check. Real quiz/exam content and answer keys are rejected with a reason. Notes can only be written by the server after the check passes. |
 | Fill the gaps (AI) | a note you wrote | Compares your notes with classmates' notes from the same lecture and lists what you missed, with sources. |
