@@ -8,7 +8,6 @@ import { extractPdfTextForAi, extractPptxText } from "@/lib/material-text";
 import { screenNoteHeuristically } from "@/lib/integrity";
 import { checkAndRecordUsage } from "@/lib/ai/usage";
 
-export const runtime = "nodejs";
 export const maxDuration = 60;
 const MAX_BYTES = 4 * 1024 * 1024;
 const TYPES = {
