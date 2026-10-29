@@ -9,6 +9,43 @@ import { Field, buttonClass, cx, inputClass } from "./ui";
 
 type Initial = { title: string; lecture_date: string; topic: string; content: string };
 
+// Matches the server's limit (Vercel caps request bodies at about 4.5 MB).
+const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
+const AI_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+
+/**
+ * The AI only reads JPG, PNG, WebP, and GIF under 4 MB. For other photos (like
+ * iPhone HEIC, BMP, TIFF) or big ones, let the browser decode the image and
+ * re-save it as a smaller JPG. Returns null when no conversion is needed or
+ * the browser can't decode it (the server then explains what to do).
+ */
+async function photoAsJpeg(file: File): Promise<File | null> {
+  const looksLikePhoto = file.type.startsWith("image/") || /\.(heic|heif|avif|bmp|tiff?)$/i.test(file.name);
+  if (!looksLikePhoto || file.type === "image/svg+xml") return null;
+  if (AI_PHOTO_TYPES.includes(file.type) && file.size <= MAX_UPLOAD_BYTES) return null;
+  const url = URL.createObjectURL(file);
+  try {
+    const img = new Image();
+    img.src = url;
+    await img.decode();
+    const scale = Math.min(1, 2400 / Math.max(img.naturalWidth, img.naturalHeight));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+    canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.fillStyle = "#fff"; // transparent areas would otherwise turn black in a JPG
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.85));
+    return blob ? new File([blob], file.name.replace(/\.[^.]+$/, "") + ".jpg", { type: "image/jpeg" }) : null;
+  } catch {
+    return null;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
 export function NoteEditor({
   courseId,
   noteId,
@@ -63,27 +100,26 @@ export function NoteEditor({
   const set = (key: keyof Initial) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setValues((v) => ({ ...v, [key]: e.target.value }));
 
-  async function handleImport(file: File) {
+  async function handleImport(picked: File) {
     setImportMessage(null);
-    if (/\.(md|markdown|txt)$/i.test(file.name) || file.type.startsWith("text/")) {
-      const text = await file.text();
+    if (/\.(md|markdown|txt)$/i.test(picked.name) || picked.type === "text/plain" || picked.type === "text/markdown") {
+      const text = await picked.text();
       setValues((v) => ({ ...v, content: v.content ? `${v.content}\n\n${text}` : text }));
-      setImportMessage({ tone: "info", text: `Imported ${file.name}. Review it before sharing.` });
-      return;
-    }
-    if (!aiEnabled) {
-      setImportMessage({ tone: "error", text: "Photo and PDF import needs AI, which isn't set up on this server." });
+      setImportMessage({ tone: "info", text: `Imported ${picked.name}. Review it before sharing.` });
       return;
     }
     setImporting(true);
     try {
+      // Everything else (Word, slides, spreadsheets, PDFs, photos, code...) is read on the server.
+      const file = (await photoAsJpeg(picked)) ?? picked;
+      if (file.size > MAX_UPLOAD_BYTES) throw new Error("That file is over 4 MB. Try a smaller file.");
       const body = new FormData();
       body.append("file", file);
       const res = await fetch("/api/transcribe", { method: "POST", body });
-      const json = (await res.json()) as { text?: string; error?: string };
+      const json = (await res.json().catch(() => ({}))) as { text?: string; error?: string };
       if (!res.ok || !json.text) throw new Error(json.error ?? "Couldn't read that file.");
       setValues((v) => ({ ...v, content: v.content ? `${v.content}\n\n${json.text}` : json.text! }));
-      setImportMessage({ tone: "info", text: "Transcribed! Check it for mistakes before sharing." });
+      setImportMessage({ tone: "info", text: `Imported ${picked.name}. Check it for mistakes before sharing.` });
       setTab("write");
     } catch (error) {
       setImportMessage({ tone: "error", text: error instanceof Error ? error.message : "Couldn't read that file." });
@@ -179,7 +215,9 @@ export function NoteEditor({
           <div className="text-sm">
             <p className="font-medium">Import notes</p>
             <p className="text-muted">
-              {aiEnabled ? "Upload a photo or PDF of your notes and we'll transcribe it, or a .txt / .md file." : "Upload a .txt or .md file."}
+              {aiEnabled
+                ? "Upload any file: a Word doc, slides, a spreadsheet, a text file, or a photo or PDF of your notes for us to transcribe."
+                : "Upload a Word, slides, spreadsheet, or text file. (Photo and PDF transcription needs AI, which isn't set up here.)"}
             </p>
           </div>
           <div>
@@ -188,7 +226,6 @@ export function NoteEditor({
               type="file"
               className="sr-only"
               id="import-file"
-              accept={aiEnabled ? ".txt,.md,.markdown,image/jpeg,image/png,image/webp,image/gif,application/pdf" : ".txt,.md,.markdown"}
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (file) handleImport(file);

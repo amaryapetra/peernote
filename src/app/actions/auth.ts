@@ -15,6 +15,14 @@ function safeNext(value: FormDataEntryValue | null, fallback = "/dashboard"): st
 
 /** Supabase errors without an HTTP status mean the auth service couldn't be reached. */
 function authErrorMessage(error: { status?: number; code?: string; message: string }, fallback: string): string {
+  // Supabase's built-in email sender only allows a few emails per hour across the
+  // whole project. The fix is custom SMTP in the Supabase dashboard (see README).
+  if (error.code === "over_email_send_rate_limit") {
+    return "We've hit our limit on sign-up emails for the moment, so we couldn't send your confirmation link. Try again in about an hour.";
+  }
+  if (/sending (confirmation|recovery|magic link)? ?email/i.test(error.message)) {
+    return "We couldn't send your confirmation email. Try again later, or let the PeerNote team know.";
+  }
   if (!error.status || error.status >= 500) return "We couldn't reach the sign-in service. Try again in a moment.";
   if (error.status === 429) return "Too many attempts. Wait a minute and try again.";
   return fallback;
@@ -53,6 +61,8 @@ export async function signUp(_prev: FormState, formData: FormData): Promise<Form
   });
 
   if (error) {
+    // Logged so the real cause (rate limit, email sending, database) shows up in the server logs.
+    console.error("sign-up failed", { code: error.code, status: error.status, message: error.message });
     if (error.code === "user_already_exists") return { values, error: "That email already has an account. Try logging in." };
     if (error.code === "weak_password") return { values, error: "Pick a stronger password." };
     return { values, error: authErrorMessage(error, "We couldn't create your account. Check your details and try again.") };
