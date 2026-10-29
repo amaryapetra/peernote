@@ -58,9 +58,9 @@ export type Database = {
         Relationships: [Rel<"profiles_last_course_fk", "last_course_id", "courses">];
       };
       contact_cards: {
-        Row: { user_id: string; contact: string; updated_at: string };
-        Insert: { user_id: string; contact?: string };
-        Update: { contact?: string };
+        Row: { user_id: string; contact: string; phone: string | null; updated_at: string };
+        Insert: { user_id: string; contact?: string; phone?: string | null };
+        Update: { contact?: string; phone?: string | null };
         Relationships: [Rel<"contact_cards_user_id_fkey", "user_id", "profiles">];
       };
       courses: {
@@ -251,6 +251,15 @@ export type Database = {
           Rel<"connections_requester_id_fkey", "requester_id", "profiles">,
           Rel<"connections_addressee_id_fkey", "addressee_id", "profiles">,
           Rel<"connections_course_id_fkey", "course_id", "courses">,
+        ];
+      };
+      direct_messages: {
+        Row: { id: string; connection_id: string; sender_id: string; body: string; created_at: string };
+        Insert: { connection_id: string; sender_id: string; body: string };
+        Update: Record<string, never>;
+        Relationships: [
+          Rel<"direct_messages_connection_id_fkey", "connection_id", "connections">,
+          Rel<"direct_messages_sender_id_fkey", "sender_id", "profiles">,
         ];
       };
       ai_insights: {

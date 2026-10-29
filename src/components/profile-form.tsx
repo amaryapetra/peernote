@@ -15,6 +15,7 @@ type ProfileValues = {
   study_styles: string[];
   availability: string[];
   contact: string;
+  phone: string;
 };
 
 function CheckboxGroup({
@@ -49,7 +50,7 @@ function CheckboxGroup({
   );
 }
 
-export function ProfileForm({ initial, email }: { initial: ProfileValues; email: string }) {
+export function ProfileForm({ initial }: { initial: ProfileValues }) {
   const [state, action] = useActionState(updateProfile, undefined);
   return (
     <form action={action} className="space-y-6" noValidate>
@@ -86,11 +87,20 @@ export function ProfileForm({ initial, email }: { initial: ProfileValues; email:
         hint="Partners with overlapping times rank higher."
       />
       <Field
-        label="Contact info for study partners"
+        label="Other contact info (optional)"
         htmlFor="contact"
-        hint="Shown only to classmates after you both agree to connect. Phone, Instagram, GroupMe, or email."
+        error={state?.fieldErrors?.contact}
+        hint="Email, Instagram, or GroupMe. Shown only after you both agree to connect."
       >
-        <input id="contact" name="contact" defaultValue={echoed(state, "contact", initial.contact || email)} maxLength={200} className={inputClass} />
+        <input id="contact" name="contact" defaultValue={echoed(state, "contact", initial.contact)} maxLength={200} className={inputClass} />
+      </Field>
+      <Field
+        label="Phone number (optional)"
+        htmlFor="phone"
+        error={state?.fieldErrors?.phone}
+        hint="Only accepted study partners can see this. Leave blank or clear it to stop sharing your number. You can also use Messages without sharing a phone number."
+      >
+        <input id="phone" name="phone" type="tel" autoComplete="tel" defaultValue={echoed(state, "phone", initial.phone)} maxLength={40} className={inputClass} placeholder="e.g. +1 (504) 555-0123" />
       </Field>
       <SubmitButton pendingText="Saving…">Save profile</SubmitButton>
     </form>

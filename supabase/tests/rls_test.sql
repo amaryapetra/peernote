@@ -36,6 +36,7 @@ select pg_temp.check((select count(*) from contact_cards) = 3, 'signup trigger c
 
 -- A creates a course
 select pg_temp.act('00000000-0000-0000-0000-00000000000a');
+select pg_temp.expect_fail($q$insert into courses (code,title,term,created_by) values ('REG 100','Returning regression','Fall 2026',auth.uid()) returning id$q$, 'returning cannot read course before AFTER INSERT enrollment; app must use minimal insert');
 insert into courses (id, code, title, term, instructor, created_by, join_code)
   values ('10000000-0000-0000-0000-000000000001','MATH 3090','Linear Algebra','Fall 2026','Prof. Lee','00000000-0000-0000-0000-00000000000a','ABCDEF123456');
 select pg_temp.check((select members_count from courses where id='10000000-0000-0000-0000-000000000001') = 1, 'creator auto-enrolled, count=1');
@@ -69,6 +70,9 @@ select pg_temp.check(public.join_course_by_code('ABCDEF123456') = '10000000-0000
 select pg_temp.check((select count(*) from notes) = 1, 'member can read notes');
 select pg_temp.check((select count(*) from profiles) = 2, 'classmate profile visible');
 select pg_temp.check((select count(*) from contact_cards) = 1, 'classmate contact hidden before connecting');
+select pg_temp.check((select phone is null from contact_cards where user_id=auth.uid()), 'phone is optional by default');
+update contact_cards set phone='+1 (504) 555-0123' where user_id=auth.uid();
+select pg_temp.check((select phone from contact_cards where user_id=auth.uid()) = '+1 (504) 555-0123', 'owner can save optional phone');
 insert into note_reactions (note_id, user_id) values ('20000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-00000000000b');
 select pg_temp.check((select helpful_count from notes) = 1, 'helpful count trigger');
 with d as (delete from notes returning 1) select pg_temp.check((select count(*) from d) = 0, 'cannot delete others notes');
@@ -79,6 +83,7 @@ select pg_temp.check((select count(*) from notes) = 1, 'note still exists');
 select pg_temp.act('00000000-0000-0000-0000-00000000000b');
 insert into connections (id, requester_id, addressee_id, course_id, message) values
  ('30000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-00000000000b','00000000-0000-0000-0000-00000000000a','10000000-0000-0000-0000-000000000001','Study for the midterm?');
+select pg_temp.expect_fail($q$insert into direct_messages(connection_id,sender_id,body) values ('30000000-0000-0000-0000-000000000001',auth.uid(),'Hello')$q$, 'pending connections cannot send DMs');
 with u as (update connections set status='accepted' returning 1) select pg_temp.check((select count(*) from u) = 0, 'requester cannot accept own request');
 reset role;
 select pg_temp.act('00000000-0000-0000-0000-00000000000a');
@@ -86,10 +91,27 @@ select pg_temp.expect_fail($q$insert into connections (requester_id, addressee_i
 select pg_temp.expect_fail($q$update connections set requester_id = auth.uid()$q$, 'cannot rewrite requester (column grant)');
 update connections set status='accepted', responded_at=now() where id='30000000-0000-0000-0000-000000000001';
 select pg_temp.check((select count(*) from contact_cards) = 2, 'contact visible after accept');
+select pg_temp.check((select phone from contact_cards where user_id='00000000-0000-0000-0000-00000000000b') = '+1 (504) 555-0123', 'phone shared only after acceptance');
+with u as (update contact_cards set phone=null where user_id='00000000-0000-0000-0000-00000000000b' returning 1)
+  select pg_temp.check((select count(*) from u)=0, 'partner cannot change someone else phone');
+insert into direct_messages(connection_id,sender_id,body) values ('30000000-0000-0000-0000-000000000001',auth.uid(),'Library at 5?');
+select pg_temp.expect_fail($q$insert into direct_messages(connection_id,sender_id,body) values ('30000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-00000000000b','Spoof')$q$, 'cannot impersonate partner');
+select pg_temp.expect_fail($q$insert into direct_messages(connection_id,sender_id,body) values ('30000000-0000-0000-0000-000000000001',auth.uid(),E' \n\t')$q$, 'blank DM rejected');
+select pg_temp.expect_fail($q$insert into direct_messages(connection_id,sender_id,body) values ('30000000-0000-0000-0000-000000000001',auth.uid(),repeat('x',2001))$q$, 'oversized DM rejected');
+select pg_temp.expect_fail($q$update direct_messages set body='Changed'$q$, 'messages cannot be rewritten');
+select pg_temp.expect_fail($q$insert into direct_messages(connection_id,sender_id,body,created_at) values ('30000000-0000-0000-0000-000000000001',auth.uid(),'Forged date',now())$q$, 'cannot forge DM timestamp');
+reset role;
+select pg_temp.act('00000000-0000-0000-0000-00000000000b');
+select pg_temp.check((select count(*) from direct_messages)=1, 'recipient reads accepted partner DM');
+insert into direct_messages(connection_id,sender_id,body) values ('30000000-0000-0000-0000-000000000001',auth.uid(),'See you there!');
+update contact_cards set phone=null where user_id=auth.uid();
+select pg_temp.check((select phone is null from contact_cards where user_id=auth.uid()), 'owner can remove phone');
 reset role;
 select pg_temp.act('00000000-0000-0000-0000-00000000000c');
 select pg_temp.check((select count(*) from connections) = 0, 'outsider cannot see connections');
 select pg_temp.check((select count(*) from contact_cards) = 1, 'outsider sees only own contact');
+select pg_temp.check((select count(*) from direct_messages)=0, 'outsider cannot read DMs');
+select pg_temp.expect_fail($q$insert into direct_messages(connection_id,sender_id,body) values ('30000000-0000-0000-0000-000000000001',auth.uid(),'Intrusion')$q$, 'outsider cannot send to another conversation');
 reset role;
 
 -- Study groups with capacity 2
@@ -190,6 +212,18 @@ select pg_temp.check((select count(*) from storage.objects where bucket_id='cour
 reset role;
 set role anon;
 select pg_temp.expect_fail($q$select * from course_materials$q$, 'anonymous materials blocked');
+reset role;
+
+-- Removing a connection ends access and deletes its conversation.
+select pg_temp.act('00000000-0000-0000-0000-00000000000a');
+select pg_temp.check((select count(*) from direct_messages)=2, 'sender can read reply');
+delete from connections where id='30000000-0000-0000-0000-000000000001';
+select pg_temp.check((select count(*) from direct_messages)=0, 'removed partner loses message access');
+select pg_temp.expect_fail($q$insert into direct_messages(connection_id,sender_id,body) values ('30000000-0000-0000-0000-000000000001',auth.uid(),'After removal')$q$, 'removed connection cannot send');
+reset role;
+select pg_temp.check((select count(*) from direct_messages)=0, 'connection deletion cascades to messages');
+set role anon;
+select pg_temp.expect_fail($q$select * from direct_messages$q$, 'anonymous cannot read messages');
 reset role;
 
 \echo ALL_RLS_TESTS_PASSED
