@@ -12,7 +12,7 @@ Live site: _coming soon_ (custom domain to be added)
 | Pick up where you left off | `/dashboard` | Remembers the last course you opened and shows new classmate notes, requests, groups, and saved AI results. |
 | Courses | `/courses` | Organize joined courses into expandable semester folders; search for a course or add one. Joining a class requires its private 12-character invite code. |
 | Class materials | `/courses/[id]/materials` | Members can upload authorized PDF or PPTX slides (up to 4 MB), save Canvas/HTTPS links, organize by lecture date, preview PDFs and PowerPoint slide text, and optionally opt into AI-assisted study features. Private files use Supabase Storage and short-lived signed URLs. |
-| Share notes | `/courses/[id]/notes/new` | Markdown editor with preview, autosaved draft, and import from `.txt`/`.md` or a photo/PDF of handwritten notes (AI transcription). |
+| Share notes | `/courses/[id]/notes/new` | Markdown editor with preview, autosaved draft, and import from any file: Word, PowerPoint, Excel, OpenDocument, RTF, HTML, and text or code files are read directly (no AI needed); photos and PDFs are transcribed with AI. iPhone HEIC and other photo formats are converted to JPG in the browser first. |
 | Integrity screening | every note save | Keyword scan plus an AI check. Real quiz/exam content and answer keys are rejected with a reason. Notes can only be written by the server after the check passes. |
 | Fill the gaps (AI) | a note you wrote | Compares your notes with classmates' notes from the same lecture and lists what you missed, with sources. |
 | Catch up (AI) | `/courses/[id]/catch-up` | Builds a study guide from up to eight of the most-helpful notes for a class date. |
@@ -43,7 +43,7 @@ src/
     (auth)/          Login, sign up, password reset
     (app)/           Signed-in app: dashboard, courses, notes, groups, partners, profile
     actions/         Server Actions (every one re-checks who the user is)
-    api/transcribe/  Photo/PDF to Markdown
+    api/transcribe/  Imports a notes file (any format) as Markdown
     auth/confirm/    Landing route for email links
     sitemap.ts, robots.ts, opengraph-image.tsx, manifest.ts
   components/        UI pieces
@@ -81,6 +81,11 @@ Open [http://localhost:3000](http://localhost:3000).
    - Set **Site URL** to the live domain (for example `https://peernote.app`).
    - Add these to **Redirect URLs**: `http://localhost:3000/**`, `https://<your-domain>/**`, and `https://*-<your-vercel-team>.vercel.app/**` for preview deployments.
 4. Under **Project Settings > API**, copy the project URL, the `anon` key, and the `service_role` key into `.env.local`.
+5. **Set up email sending before inviting people.** Supabase's built-in email sender only allows a couple of emails per hour for the whole project, so once a few people sign up, everyone else gets "We've hit our limit on sign-up emails" and can't create an account. Fix it with custom SMTP:
+   - Create a free account with an email provider such as [Resend](https://resend.com) (or SendGrid, Postmark, Brevo) and get its SMTP host, port, username, and password.
+   - In Supabase, go to **Authentication > Emails > SMTP Settings**, turn on **Enable custom SMTP**, and paste those in.
+   - Then go to **Authentication > Rate Limits** and raise **Rate limit for sending emails** (for example to 100 per hour).
+   - Alternative for testing only: turning off **Confirm email** under **Authentication > Sign In / Providers > Email** skips the email entirely, but then nobody's email address is verified.
 
 ### 2. Add a Claude API key (optional but recommended)
 
