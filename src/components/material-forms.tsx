@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { shareMaterialLink } from "@/app/actions/materials";
 import { FormMessage, SubmitButton, echoed } from "./form";
@@ -21,7 +21,7 @@ export function UploadMaterialForm({ courseId }: { courseId: string }) {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  async function submit(event: React.FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (saving) return;
     const form = event.currentTarget;

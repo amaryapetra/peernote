@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
 
   const bytes = Buffer.from(await file.arrayBuffer());
   if (fileType === "pdf" && bytes.toString("ascii", 0, 5) !== "%PDF-") return fail("That PDF file is invalid.", 400);
-  if (fileType === "pptx" && bytes.readUInt32LE(0) !== 0x04034b50) return fail("That PowerPoint file is invalid.", 400);
+  if (fileType === "pptx" && (bytes.length < 4 || bytes.readUInt32LE(0) !== 0x04034b50)) return fail("That PowerPoint file is invalid.", 400);
   let text = "";
   try {
     if (fileType === "pptx") text = extractPptxText(bytes);
