@@ -84,9 +84,8 @@ export async function saveNote(_prev: NoteFormState, formData: FormData): Promis
       if (!verdict.allowed) return { integrity: { reason: verdict.reason } };
       integrityNote = `ai:${verdict.category}`;
     } catch (error) {
-      console.error("AI integrity check failed; falling back to keyword scan", error);
-      if (heuristic.level === "block") return { integrity: { reason: blockReason(heuristic.reasons) } };
-      integrityNote = `scan:${heuristic.level}`;
+      console.error("AI integrity check failed; upload not saved", error);
+      return { error: "We couldn't finish the integrity check. Your notes weren't shared; please try again." };
     }
   } else {
     if (heuristic.level === "block") return { integrity: { reason: blockReason(heuristic.reasons) } };

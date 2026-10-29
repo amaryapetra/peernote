@@ -43,7 +43,7 @@ export async function screenNoteWithAi(
     system: SYSTEM,
     effort: "low",
     maxTokens: 2000,
-    content: `Course: ${input.courseTitle}\n\n<note title="${input.title.replace(/"/g, "'")}" topic="${input.topic.replace(/"/g, "'")}">\n${input.content.slice(0, 40000)}\n</note>${hints}`,
+    content: `Course: ${input.courseTitle}\n\n<note title="${input.title.replace(/"/g, "'")}" topic="${input.topic.replace(/"/g, "'")}">\n${input.content}\n</note>${hints}`,
   });
   // Never trust "allowed" on its own if the category says otherwise.
   const allowedCategory = result.category === "lecture_notes" || result.category === "study_material";

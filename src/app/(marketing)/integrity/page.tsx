@@ -41,14 +41,15 @@ export default function IntegrityPage() {
       <section className="mt-12 space-y-4">
         <h2 className="font-display text-2xl font-semibold">How screening works</h2>
         <p className="text-muted">
-          Every time a note is saved, PeerNote runs two checks before anyone else can see it. First, a fast scan looks for
-          red flags like answer keys, point values next to questions, or exam versions. Then an AI model reads the note
-          and decides whether it&apos;s class notes and study material or assessment content. If a note is rejected, you
-          see the reason right away and can edit it.
+          Every time a note is saved, PeerNote checks it before sharing. A fast scan looks for red flags such
+          as answer keys, point values, and exam versions. When AI screening is configured, an AI model also
+          checks the full note. If that AI check is temporarily unavailable, the note is not saved and you
+          can retry. Without an AI key configured, only the keyword scan runs. Automated checks are not
+          foolproof; please share only material your instructor permits.
         </p>
         <p className="text-muted">
-          Notes can only be created through PeerNote&apos;s server, after the check passes. There&apos;s no back door that
-          skips screening.
+          Students cannot directly insert notes through the database API. Uploads pass through PeerNote&apos;s server
+          and its configured screening before they are shared.
         </p>
         <p className="text-muted">
           The AI features also follow these rules. If you ask a question that looks like it&apos;s from a live quiz or

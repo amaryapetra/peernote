@@ -128,4 +128,24 @@ select pg_temp.check((select members_count from courses) = 2, 'course members_co
 set role anon;
 select pg_temp.expect_fail($q$select * from courses$q$, 'anon blocked');
 reset role;
+-- AI quota: reservations must be atomic and may not be inserted directly.
+select pg_temp.act('00000000-0000-0000-0000-00000000000a');
+select pg_temp.expect_fail($q$insert into ai_usage (user_id, kind) values (auth.uid(), 'ask')$q$,
+  'cannot bypass quota with direct insert');
+select pg_temp.check(public.consume_ai_quota('ask'), 'first AI request allowed');
+do $quota_test$
+declare i int;
+begin
+  for i in 2..30 loop
+    if not public.consume_ai_quota('ask') then
+      raise exception 'FAIL: quota rejected valid request %', i;
+    end if;
+  end loop;
+end $quota_test$;
+select pg_temp.check(not public.consume_ai_quota('ask'), '31st AI request rejected');
+select pg_temp.check((select count(*) from ai_usage where user_id = auth.uid() and kind = 'ask') = 30,
+  'quota never writes more than 30 reservations');
+select pg_temp.expect_fail($q$select public.consume_ai_quota('invalid')$q$, 'unknown AI usage kind rejected');
+reset role;
+
 \echo ALL_RLS_TESTS_PASSED

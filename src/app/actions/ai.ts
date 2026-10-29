@@ -52,7 +52,7 @@ export async function runGapCheck(_prev: AiFormState, formData: FormData): Promi
 
   try {
     const result = await findGaps(mine, peers as PromptNote[]);
-    await supabase.from("ai_insights").insert({
+    const { error: saveError } = await supabase.from("ai_insights").insert({
       user_id: user.id,
       course_id: mine.course_id,
       note_id: mine.id,
@@ -61,6 +61,10 @@ export async function runGapCheck(_prev: AiFormState, formData: FormData): Promi
       content: result as unknown as Json,
       source_note_ids: peers.map((p) => p.id),
     });
+    if (saveError) {
+      console.error("gap check save failed", saveError);
+      return { error: "The comparison finished, but we couldn't save it. Try again." };
+    }
   } catch (error) {
     console.error("gap check failed", error);
     return { error: friendlyAiError(error) };
@@ -99,7 +103,7 @@ export async function runCatchUp(_prev: AiFormState, formData: FormData): Promis
   let insightId: string | undefined;
   try {
     const result = await buildCatchUp(`${course.code} ${course.title}`, date, notes as PromptNote[]);
-    const { data } = await supabase
+    const { data, error: saveError } = await supabase
       .from("ai_insights")
       .insert({
         user_id: user.id,
@@ -111,7 +115,11 @@ export async function runCatchUp(_prev: AiFormState, formData: FormData): Promis
       })
       .select("id")
       .single();
-    insightId = data?.id;
+    if (saveError || !data) {
+      console.error("catch-up save failed", saveError);
+      return { error: "The guide finished, but we couldn't save it. Try again." };
+    }
+    insightId = data.id;
   } catch (error) {
     console.error("catch-up failed", error);
     return { error: friendlyAiError(error) };
@@ -152,7 +160,7 @@ export async function askNotes(_prev: AiFormState, formData: FormData): Promise<
 
   try {
     const result = await answerFromNotes(`${course.code} ${course.title}`, question, notes);
-    await supabase.from("ai_insights").insert({
+    const { error: saveError } = await supabase.from("ai_insights").insert({
       user_id: user.id,
       course_id: courseId,
       kind: "ask",
@@ -160,6 +168,10 @@ export async function askNotes(_prev: AiFormState, formData: FormData): Promise<
       content: result as unknown as Json,
       source_note_ids: result.source_note_ids,
     });
+    if (saveError) {
+      console.error("ask save failed", saveError);
+      return { error: "The answer finished, but we couldn't save it. Try again." };
+    }
   } catch (error) {
     console.error("ask failed", error);
     return { error: friendlyAiError(error) };

@@ -24,7 +24,7 @@ export default function PrivacyPage() {
       <section className="space-y-3">
         <h2 className="font-display text-2xl font-semibold">Who can see what</h2>
         <ul className="list-disc space-y-2 pl-5 text-muted">
-          <li>Notes, study groups, and the class roster are visible only to students who joined that course.</li>
+          <li>Notes, study groups, and the class roster are visible to users who join the course. Currently, any signed-in user can join a listed course; enrollment is not independently verified.</li>
           <li>Your profile is visible to classmates in your courses.</li>
           <li>Your contact info is visible only to classmates whose connection request you&apos;ve accepted, or who accepted yours.</li>
           <li>Your AI results (gap checks, catch-up guides, questions) are visible only to you.</li>

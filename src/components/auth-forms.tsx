@@ -42,7 +42,7 @@ export function SignupForm() {
       <Field label="Full name" htmlFor="fullName" error={state?.fieldErrors?.fullName}>
         <input id="fullName" name="fullName" autoComplete="name" required defaultValue={echoed(state, "fullName")} className={inputClass} />
       </Field>
-      <Field label="School email" htmlFor="email" error={state?.fieldErrors?.email} hint="Use your .edu address so classmates know it's you.">
+      <Field label="Email" htmlFor="email" error={state?.fieldErrors?.email} hint="Use an email you can access to confirm your account.">
         <input id="email" name="email" type="email" autoComplete="email" required defaultValue={echoed(state, "email")} className={inputClass} />
       </Field>
       <Field label="Password" htmlFor="password" error={state?.fieldErrors?.password} hint="At least 8 characters.">

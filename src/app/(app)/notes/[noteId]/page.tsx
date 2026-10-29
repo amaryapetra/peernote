@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { deleteNote, toggleHelpful } from "@/app/actions/notes";
 import { GapCheckForm } from "@/components/ai-forms";
+import { DraftCleanup } from "@/components/draft-cleanup";
 import { GapResultView } from "@/components/ai-results";
 import { SubmitButton } from "@/components/form";
 import { Markdown } from "@/components/markdown";
@@ -63,6 +64,7 @@ export default async function NotePage({ params, searchParams }: PageProps<"/not
   return (
     <div className="grid gap-10 lg:grid-cols-[1fr_18rem]">
       <article className="min-w-0">
+        {isAuthor && sp.shared === "1" && <DraftCleanup courseId={note.course_id} />}
         <nav aria-label="Breadcrumb" className="mb-4 text-sm text-muted">
           <Link href={`/courses/${note.course.id}`} className="hover:text-ink">
             {note.course.code}
