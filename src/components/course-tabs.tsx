@@ -16,6 +16,7 @@ export function CourseTabs({ courseId }: { courseId: string }) {
     { href: `${base}/ask`, label: "Ask the notes" },
     { href: `${base}/classmates`, label: "Classmates" },
     { href: `${base}/groups`, label: "Study groups" },
+    { href: `${base}/video`, label: "Video study room" },
   ];
   return (
     <nav aria-label="Course sections" className="-mb-px flex gap-1 overflow-x-auto">

@@ -98,6 +98,12 @@ export type Database = {
           Rel<"enrollments_course_id_fkey", "course_id", "courses">,
         ];
       };
+      course_video_rooms: {
+        Row: { course_id: string; room_id: string; created_at: string };
+        Insert: { course_id: string; room_id?: string; created_at?: string };
+        Update: Record<string, never>;
+        Relationships: [Rel<"course_video_rooms_course_id_fkey", "course_id", "courses">];
+      };
       course_materials: {
         Row: {
           id: string;

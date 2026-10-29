@@ -55,6 +55,16 @@ export default async function CourseNotesPage({ params, searchParams }: PageProp
         Share this invite code with trusted classmates: <strong className="font-mono tracking-wide text-ink">{course.join_code}</strong>.
         Anyone with the code and a PeerNote account can join.
       </p>
+      <section className="flex flex-col gap-4 rounded-xl border border-brand/30 bg-brand-soft p-5 sm:flex-row sm:items-center sm:justify-between" aria-label="Live study room">
+        <div>
+          <h2 className="font-display text-lg font-semibold text-ink">Study together on video</h2>
+          <p className="mt-1 text-sm text-muted">
+            Join classmates in {course.code} for a live study session with video, chat, and screen sharing.
+          </p>
+        </div>
+        <ButtonLink href={`/courses/${course.id}/video`}>Join video study room</ButtonLink>
+      </section>
+
       {sp.deleted === "1" && <Alert tone="success">Your note was deleted.</Alert>}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

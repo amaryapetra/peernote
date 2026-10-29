@@ -21,8 +21,13 @@ Live site: _coming soon_ (custom domain to be added)
 | Phone contact (optional) | `/profile` | Add or remove a phone number; only accepted study partners can see it. Existing contact information is preserved. |
 | Direct messages | `/messages` | Private conversations between accepted study partners, with 2,000-character messages, paginated history, and refresh every 10 seconds while the conversation is visible. Removing a connection deletes its conversation for both people. |
 | Study groups | course Study groups tab, `/groups/[id]` | Create or join a capped-size group with a time, place, and members-only message board. |
+| Video study room | `/courses/[id]/video` | Enrolled course members can launch an embedded Jitsi Meet video call for their class, including screen sharing and chat. |
 
-## Security and rollout considerations
+## Video study room notes
+
+The course's **Video study room** tab embeds Jitsi Meet after the user chooses to join. No API key or additional package is required. Each class has its own stable, randomly generated meeting name stored in Supabase. The room table has row-level security so only enrolled students can read it. Only enrolled students can get the link inside PeerNote, but **the external Jitsi room is not access-controlled by Supabase**: someone with the meeting URL may join. Treat the link as sensitive; do not use the room for confidential information. Jitsi may require a host to authenticate depending on its current service policy. Test camera/microphone permissions, iframe availability, and multiple simultaneous browsers on the deployment domain before relying on this feature.
+
+Apply `supabase/migrations/20261029180000_course_video_rooms.sql` in the Supabase SQL Editor (or with `supabase db push`) before viewing this tab. This creates a video room for every existing course and automatically creates one for new courses. If the migration has not run, the tab will show a setup message instead of a call. Video calling uses Jitsi; Supabase handles student access and the stored room name, not the video stream. The Jitsi service may require host authentication. Test with two classmates on separate browsers before using it for a study session.\n\n## Security and rollout considerations
 
 - **Phone and messages rollout:** Apply `supabase/migrations/20261029153546_optional_phone_and_direct_messages.sql` before deploying this app version. The new phone field inherits contact-card privacy rules; direct messages enforce accepted participants and sender identity through RLS. No phone number is required to message. Test with two connected accounts plus an unrelated account. This feature does not include push notifications or read receipts.
 - **Course creation:** Use an insert without `RETURNING`, with a server-generated UUID. The members-only course SELECT policy runs before the creator-enrollment AFTER INSERT trigger when `RETURNING` is requested, causing valid creation attempts to fail.
