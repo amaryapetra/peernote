@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CreateCourseForm, JoinByCodeForm } from "@/components/course-forms";
-import { Alert, Badge, Card, EmptyState, PageHeader, inputClass } from "@/components/ui";
+import { SemesterCourseFolders } from "@/components/semester-course-folders";
+import { Alert, Card, EmptyState, PageHeader, inputClass } from "@/components/ui";
 import { getViewer } from "@/lib/auth";
 import { suggestedTerms } from "@/lib/constants";
 import { getMyCourses } from "@/lib/data";
@@ -75,24 +76,7 @@ export default async function CoursesPage({ searchParams }: PageProps<"/courses"
         {myCourses.length === 0 ? (
           <EmptyState title="No courses yet">Search above, join with a code, or add a course below.</EmptyState>
         ) : (
-          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {myCourses.map((course) => (
-              <li key={course.id}>
-                <Link href={`/courses/${course.id}`} className="block h-full rounded-xl border border-line bg-surface p-4 hover:border-brand/40">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-sm font-medium text-brand">{course.code}</p>
-                    <Badge>{course.term}</Badge>
-                  </div>
-                  <p className="mt-1 font-display text-lg font-semibold">{course.title}</p>
-                  {course.instructor && <p className="text-sm text-muted">{course.instructor}</p>}
-                  <p className="mt-3 text-sm text-muted">
-                    {course.members_count} student{course.members_count === 1 ? "" : "s"} · {course.notes_count} note
-                    {course.notes_count === 1 ? "" : "s"}
-                  </p>
-                </Link>
-              </li>
-            ))}
-          </ul>
+          <SemesterCourseFolders courses={myCourses} currentTerm={suggestedTerms()[0]} />
         )}
       </section>
 
