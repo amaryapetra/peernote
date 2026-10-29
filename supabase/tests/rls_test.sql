@@ -183,6 +183,7 @@ select pg_temp.check((select count(*) from storage.objects where bucket_id='cour
 select pg_temp.expect_fail($q$insert into course_materials(course_id,uploaded_by,title,lecture_date,source_type,link_url) values
 ('10000000-0000-0000-0000-000000000001', auth.uid(), 'Direct link','2026-10-01','link','https://example.com')$q$, 'cannot bypass permission acknowledgement');
 select pg_temp.expect_fail($q$insert into storage.objects(bucket_id,name) values ('course-materials','fake')$q$, 'clients cannot upload storage objects directly');
+select pg_temp.expect_fail($q$update course_materials set file_type = 'docx'$q$, 'clients cannot change material rows');
 reset role;
 select pg_temp.act('00000000-0000-0000-0000-00000000000b');
 select pg_temp.check((select count(*) from course_materials) = 0, 'former course member cannot read material rows');
@@ -190,6 +191,16 @@ select pg_temp.check((select count(*) from storage.objects where bucket_id='cour
 reset role;
 set role anon;
 select pg_temp.expect_fail($q$select * from course_materials$q$, 'anonymous materials blocked');
+reset role;
+-- Any file extension is allowed, but it must be a plain lowercase extension.
+set role service_role;
+insert into course_materials (course_id, uploaded_by, title, lecture_date, source_type, file_type, file_name, storage_path)
+values ('10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000a', 'Reading list', '2026-10-02', 'file',
+  'docx', 'reading.docx', '10000000-0000-0000-0000-000000000001/a/reading.docx');
+select pg_temp.check(true, 'materials accept any file extension');
+select pg_temp.expect_fail($q$insert into course_materials (course_id, uploaded_by, title, lecture_date, source_type, file_type, file_name, storage_path)
+values ('10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000a', 'Bad type', '2026-10-02', 'file',
+  '../x', 'x', '10000000-0000-0000-0000-000000000001/a/x')$q$, 'file type must be a plain extension');
 reset role;
 
 \echo ALL_RLS_TESTS_PASSED

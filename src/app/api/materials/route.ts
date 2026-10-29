@@ -4,16 +4,14 @@ import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAiConfigured, friendlyAiError } from "@/lib/ai/client";
-import { extractPdfTextForAi, extractPptxText } from "@/lib/material-text";
+import { extractMaterialTextForAi, MATERIAL_TEXT_LIMIT } from "@/lib/material-text";
+import { INLINE_TYPES, fileExtension, isExecutable, isInlineType } from "@/lib/material-files";
+import { prepareNoteImport } from "@/lib/note-import";
 import { screenNoteHeuristically } from "@/lib/integrity";
 import { checkAndRecordUsage } from "@/lib/ai/usage";
 
 export const maxDuration = 60;
 const MAX_BYTES = 4 * 1024 * 1024;
-const TYPES = {
-  pdf: "application/pdf",
-  pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-} as const;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function fail(error: string, status: number) { return NextResponse.json({ error }, { status }); }
@@ -34,48 +32,57 @@ export async function POST(request: NextRequest) {
     return fail("Enter a title and valid lecture date.", 400);
   }
   if (form.get("permission") !== "on") {
-    return fail("Confirm that you have permission to share these slides and they are not exam materials.", 400);
+    return fail("Confirm that you have permission to share this material and it is not exam material.", 400);
   }
-  if (!(file instanceof File) || file.size === 0) return fail("Choose a PDF or PowerPoint file.", 400);
+  if (!(file instanceof File) || file.size === 0) return fail("Choose a file to upload.", 400);
   if (file.size > MAX_BYTES) return fail("Files must be 4 MB or smaller.", 413);
-  const fileType = file.name.toLowerCase().endsWith(".pdf") ? "pdf" : file.name.toLowerCase().endsWith(".pptx") ? "pptx" : null;
-  if (!fileType || ![TYPES[fileType], "application/octet-stream", ""].includes(file.type)) {
-    return fail("Only .pdf and .pptx slides are supported.", 400);
-  }
   const supabase = await createClient();
   const { data: member } = await supabase.from("enrollments").select("course_id")
     .eq("course_id", courseId).eq("user_id", user.id).maybeSingle();
-  if (!member) return fail("Join this course before sharing slides.", 403);
+  if (!member) return fail("Join this course before sharing materials.", 403);
 
   const bytes = Buffer.from(await file.arrayBuffer());
-  if (fileType === "pdf" && bytes.toString("ascii", 0, 5) !== "%PDF-") return fail("That PDF file is invalid.", 400);
-  if (fileType === "pptx" && (bytes.length < 4 || bytes.readUInt32LE(0) !== 0x04034b50)) return fail("That PowerPoint file is invalid.", 400);
-  let text = "";
+  if (isExecutable(file.name, bytes)) return fail("Programs and installers can't be shared. Upload the class material itself.", 415);
+
+  // Read the file's text for the preview and (if allowed) the AI study tools.
+  // Documents, slides, and spreadsheets are read locally; PDFs and photos need AI.
+  const prepared = prepareNoteImport(bytes, file.name);
+  let text = prepared.kind === "text" ? prepared.text.slice(0, MATERIAL_TEXT_LIMIT) : "";
   try {
-    if (fileType === "pptx") text = extractPptxText(bytes);
-    if (fileType === "pdf" && wantsAi) {
-      if (!isAiConfigured()) return fail("AI extraction isn't configured. Uncheck AI analysis to upload this PDF.", 503);
+    if (prepared.kind === "ai" && wantsAi) {
+      if (!isAiConfigured()) return fail("AI reading isn't set up yet. Uncheck the AI box to upload this file.", 503);
       const usageError = await checkAndRecordUsage(supabase, user.id, "transcribe");
       if (usageError) return fail(usageError, 429);
-      text = await extractPdfTextForAi(bytes);
+      text = await extractMaterialTextForAi(bytes, prepared.mediaType);
       if (text === "NOT_LECTURE_MATERIAL") return fail("Assessments or answer keys can't be shared.", 422);
     }
-    if (text && screenNoteHeuristically({ title, topic: "Lecture slides", content: text }).level === "block") {
-      return fail("These slides appear to include assessment material and cannot be shared.", 422);
-    }
   } catch (error) {
-    console.error("slide text extraction failed", error);
-    return fail(fileType === "pptx" ? "Could not read this PowerPoint file." : friendlyAiError(error), 422);
+    console.error("material text extraction failed", error);
+    return fail(friendlyAiError(error), 422);
+  }
+  if (text && screenNoteHeuristically({ title, topic: "Class material", content: text }).level === "block") {
+    return fail("This file appears to include assessment material and cannot be shared.", 422);
   }
 
-  const safeFileName = file.name.split(/[\\/]/).pop()!.replace(/[^a-zA-Z0-9_. -]/g, "_").slice(0, 180);
+  // Only real PDFs and images are stored with a type browsers display. Everything
+  // else is stored as a generic download, so an uploaded web page or script can
+  // never run in a classmate's browser.
+  let fileType = fileExtension(file.name);
+  if (prepared.kind === "ai") {
+    fileType = prepared.mediaType === "application/pdf" ? "pdf" : prepared.mediaType.slice("image/".length).replace("jpeg", "jpg");
+  } else if (isInlineType(fileType)) {
+    fileType = "file"; // named like a PDF or image, but it isn't one
+  }
+  const contentType = isInlineType(fileType) ? INLINE_TYPES[fileType] : "application/octet-stream";
+
+  const safeFileName = file.name.split(/[\\/]/).pop()!.replace(/[^a-zA-Z0-9_. ()-]/g, "_").slice(0, 180) || "file";
   const path = `${courseId}/${user.id}/${randomUUID()}.${fileType}`;
   const admin = createAdminClient();
   const { error: uploadError } = await admin.storage.from("course-materials").upload(path, bytes, {
-    contentType: TYPES[fileType], upsert: false, cacheControl: "60",
+    contentType, upsert: false, cacheControl: "60",
   });
   if (uploadError) {
-    console.error("slide storage failed", uploadError);
+    console.error("material storage failed", uploadError);
     return fail("Couldn't save this file. Please try again.", 502);
   }
 

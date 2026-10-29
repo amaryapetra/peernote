@@ -27,7 +27,7 @@ export function UploadMaterialForm({ courseId }: { courseId: string }) {
     const form = event.currentTarget;
     const data = new FormData(form);
     const file = data.get("file");
-    if (!(file instanceof File) || file.size === 0) return setError("Choose a PDF or PowerPoint.");
+    if (!(file instanceof File) || file.size === 0) return setError("Choose a file to upload.");
     if (file.size > 4 * 1024 * 1024) return setError("Files must be under 4 MB.");
     setSaving(true); setError(""); setMessage("");
     try {
@@ -37,7 +37,7 @@ export function UploadMaterialForm({ courseId }: { courseId: string }) {
         setError(result.error || "Upload failed. Try again.");
       } else {
         ref.current?.reset();
-        setMessage("Slides uploaded and shared with your course.");
+        setMessage("File uploaded and shared with your course.");
         router.refresh();
       }
     } catch {
@@ -57,16 +57,16 @@ export function UploadMaterialForm({ courseId }: { courseId: string }) {
         <Field label="Lecture date" htmlFor="upload-date"><input id="upload-date" name="lectureDate" type="date" className={inputClass} required /></Field>
       </div>
       <Field label="Description (optional)" htmlFor="upload-description"><input id="upload-description" name="description" maxLength={600} className={inputClass} placeholder="Topics covered in class" /></Field>
-      <Field label="Slides (PDF or .pptx)" htmlFor="upload-file" hint="Maximum 4 MB. PDFs preview inline; PowerPoints show a text preview and can be downloaded.">
-        <input id="upload-file" name="file" type="file" required accept=".pdf,.pptx,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation" className={inputClass} />
+      <Field label="File" htmlFor="upload-file" hint="Any file type, up to 4 MB. PDFs and images preview here; documents, slides, and spreadsheets show a text preview. Other files can be downloaded.">
+        <input id="upload-file" name="file" type="file" required className={inputClass} />
       </Field>
       <label className="flex items-start gap-2 text-sm text-muted">
         <input type="checkbox" name="aiAllowed" className="mt-1 accent-brand" />
-        <span>Allow PeerNote AI to analyze the slide text for catch-up guides, gap checks, and questions. PDF text extraction uses Anthropic; PowerPoint text is extracted locally.</span>
+        <span>Allow PeerNote AI to use this file&apos;s text for catch-up guides, gap checks, and questions. Text in documents, slides, and spreadsheets is read on our server; PDFs and images are read with Anthropic&apos;s AI.</span>
       </label>
       <SharingPermission />
       <button type="submit" disabled={saving} className={buttonClass()}>
-        {saving ? "Uploading…" : "Upload class slides"}
+        {saving ? "Uploading…" : "Upload file"}
       </button>
     </form>
   );
