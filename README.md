@@ -11,6 +11,7 @@ Live site: _coming soon_ (custom domain to be added)
 | Accounts | `/signup`, `/login` | Supabase Auth (email and password, email confirmation, password reset). Everything a student creates is saved to their account. |
 | Pick up where you left off | `/dashboard` | Remembers the last course you opened and shows new classmate notes, requests, groups, and saved AI results. |
 | Courses | `/courses` | Organize joined courses into expandable semester folders; search for a course or add one. Joining a class requires its private 12-character invite code. |
+| Class materials | `/courses/[id]/materials` | Members can upload authorized PDF or PPTX slides (up to 4 MB), save Canvas/HTTPS links, organize by lecture date, preview PDFs and PowerPoint slide text, and optionally opt into AI-assisted study features. Private files use Supabase Storage and short-lived signed URLs. |
 | Share notes | `/courses/[id]/notes/new` | Markdown editor with preview, autosaved draft, and import from `.txt`/`.md` or a photo/PDF of handwritten notes (AI transcription). |
 | Integrity screening | every note save | Keyword scan plus an AI check. Real quiz/exam content and answer keys are rejected with a reason. Notes can only be written by the server after the check passes. |
 | Fill the gaps (AI) | a note you wrote | Compares your notes with classmates' notes from the same lecture and lists what you missed, with sources. |
@@ -25,6 +26,7 @@ Live site: _coming soon_ (custom domain to be added)
 - **Integrity screening:** Keyword checks always run. When an Anthropic key is configured, the entire note also receives AI screening; an AI outage prevents saving. Without an AI key, only keyword scanning runs and may miss prohibited content. No automated screen guarantees compliance with a school honor code.
 - **AI usage:** Apply every migration (including `20261027000000_atomic_ai_quota.sql`) before deploying the matching app code. AI quotas are reserved atomically in Postgres.
 - **Invite-code rollout:** Apply `20261029160000_secure_course_invites.sql` with the corresponding app release. It rotates previously exposed six-character codes to twelve characters and blocks direct enrollments. Existing members retain access; old shared codes stop working. The app does not collect Canvas screenshots.
+- **Class materials rollout:** Apply `supabase/migrations/20261029170000_course_materials.sql` before deploying this version. File uploads use a private `course-materials` Storage bucket with course-members-only read access; uploads and deletions are performed server-side after membership checks. An uploader must confirm they have permission to share. PDF pages preview inline; PowerPoint slides have a text preview and a download link (full-fidelity PPTX rendering isn't available). Only opt-in extracted slide text is available for AI; Canvas links are never fetched.
 - **Privacy:** Avoid uploading private or instructor-restricted content. Test with multiple accounts and live Supabase/Anthropic before a public launch.
 
 ## Tech stack and architecture

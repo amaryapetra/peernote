@@ -10,6 +10,7 @@ import { buildCatchUp } from "@/lib/ai/catch-up";
 import { answerFromNotes } from "@/lib/ai/ask";
 import { checkAndRecordUsage } from "@/lib/ai/usage";
 import type { PromptNote } from "@/lib/ai/notes-format";
+import { getAiMaterialNotes } from "@/lib/ai/materials";
 import type { Json } from "@/lib/database.types";
 
 export type AiFormState = { error?: string } | undefined;
@@ -43,15 +44,19 @@ export async function runGapCheck(_prev: AiFormState, formData: FormData): Promi
     .neq("author_id", user.id)
     .order("helpful_count", { ascending: false })
     .limit(MAX_PEER_NOTES);
-  if (!peers?.length) {
-    return { error: "No classmates have shared notes for this lecture yet. Check back later." };
+  let approvedMaterials: PromptNote[];
+  try { approvedMaterials = await getAiMaterialNotes(supabase, mine.course_id, mine.lecture_date); }
+  catch { return { error: "Couldn't load approved slides. Try again." }; }
+  const references: PromptNote[] = [...(peers ?? []), ...approvedMaterials];
+  if (!references.length) {
+    return { error: "No classmates have shared notes or AI-approved slides for this lecture yet." };
   }
 
   const limited = await checkAndRecordUsage(supabase, user.id, "gap_fill");
   if (limited) return { error: limited };
 
   try {
-    const result = await findGaps(mine, peers as PromptNote[]);
+    const result = await findGaps(mine, references);
     const { error: saveError } = await supabase.from("ai_insights").insert({
       user_id: user.id,
       course_id: mine.course_id,
@@ -59,7 +64,7 @@ export async function runGapCheck(_prev: AiFormState, formData: FormData): Promi
       lecture_date: mine.lecture_date,
       kind: "gap_fill",
       content: result as unknown as Json,
-      source_note_ids: peers.map((p) => p.id),
+      source_note_ids: references.map((p) => p.id),
     });
     if (saveError) {
       console.error("gap check save failed", saveError);
@@ -95,14 +100,18 @@ export async function runCatchUp(_prev: AiFormState, formData: FormData): Promis
       .limit(MAX_PEER_NOTES),
   ]);
   if (!course) return { error: "Course not found." };
-  if (!notes?.length) return { error: "Nobody has shared notes for that day yet." };
+  let approvedMaterials: PromptNote[];
+  try { approvedMaterials = await getAiMaterialNotes(supabase, courseId, date); }
+  catch { return { error: "Couldn't load approved slides. Try again." }; }
+  const references: PromptNote[] = [...(notes ?? []), ...approvedMaterials];
+  if (!references.length) return { error: "No notes or AI-approved slides for that day yet." };
 
   const limited = await checkAndRecordUsage(supabase, user.id, "catch_up");
   if (limited) return { error: limited };
 
   let insightId: string | undefined;
   try {
-    const result = await buildCatchUp(`${course.code} ${course.title}`, date, notes as PromptNote[]);
+    const result = await buildCatchUp(`${course.code} ${course.title}`, date, references);
     const { data, error: saveError } = await supabase
       .from("ai_insights")
       .insert({
@@ -111,7 +120,7 @@ export async function runCatchUp(_prev: AiFormState, formData: FormData): Promis
         lecture_date: date,
         kind: "catch_up",
         content: result as unknown as Json,
-        source_note_ids: notes.map((n) => n.id),
+        source_note_ids: references.map((n) => n.id),
       })
       .select("id")
       .single();
@@ -153,13 +162,17 @@ export async function askNotes(_prev: AiFormState, formData: FormData): Promise<
       .limit(6);
     notes = (recent ?? []).map((n) => ({ ...n, author_id: "", rank: 0 }));
   }
-  if (!notes.length) return { error: "This course doesn't have any notes yet. Share some first!" };
+  let approvedMaterials: PromptNote[];
+  try { approvedMaterials = await getAiMaterialNotes(supabase, courseId); }
+  catch { return { error: "Couldn't load approved slides. Try again." }; }
+  const references: PromptNote[] = [...(notes ?? []), ...approvedMaterials];
+  if (!references.length) return { error: "This course has no notes or AI-approved slides yet." };
 
   const limited = await checkAndRecordUsage(supabase, user.id, "ask");
   if (limited) return { error: limited };
 
   try {
-    const result = await answerFromNotes(`${course.code} ${course.title}`, question, notes);
+    const result = await answerFromNotes(`${course.code} ${course.title}`, question, references);
     const { error: saveError } = await supabase.from("ai_insights").insert({
       user_id: user.id,
       course_id: courseId,

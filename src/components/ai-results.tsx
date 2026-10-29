@@ -5,7 +5,7 @@ import type { AskResult } from "@/lib/ai/ask";
 import { Markdown } from "./markdown";
 import { Badge } from "./ui";
 
-export type SourceNote = { id: string; title: string; author: string };
+export type SourceNote = { id: string; title: string; author: string; href: string };
 
 function Sources({ ids, notes }: { ids: string[]; notes: Map<string, SourceNote> }) {
   const found = ids.map((id) => notes.get(id)).filter((n): n is SourceNote => Boolean(n));
@@ -16,8 +16,8 @@ function Sources({ ids, notes }: { ids: string[]; notes: Map<string, SourceNote>
       {found.map((n, i) => (
         <span key={n.id}>
           {i > 0 && ", "}
-          <Link href={`/notes/${n.id}`} className="text-brand hover:underline">
-            {n.author}&apos;s notes
+          <Link href={n.href} className="text-brand hover:underline">
+            {n.author === "Course material" ? `Slides: ${n.title}` : `${n.author}'s notes`}
           </Link>
         </span>
       ))}

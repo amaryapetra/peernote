@@ -32,7 +32,7 @@ export default async function AskPage({ params }: PageProps<"/courses/[courseId]
           <Badge tone="brand">AI</Badge>
         </div>
         <p className="mb-4 mt-1 text-sm text-muted">
-          Answers come only from notes shared in {course.code}, with links to the notes they&apos;re based on.
+          Answers come from shared notes and explicitly AI-approved lecture slides in {course.code}, with links to sources.
         </p>
         {isAiConfigured() ? <AskForm courseId={course.id} /> : <p className="text-sm text-muted">AI features aren&apos;t set up on this server yet.</p>}
       </Card>

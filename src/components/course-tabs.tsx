@@ -11,6 +11,7 @@ export function CourseTabs({ courseId }: { courseId: string }) {
   const base = `/courses/${courseId}`;
   const tabs = [
     { href: base, label: "Notes" },
+    { href: `${base}/materials`, label: "Class materials" },
     { href: `${base}/catch-up`, label: "Catch up" },
     { href: `${base}/ask`, label: "Ask the notes" },
     { href: `${base}/classmates`, label: "Classmates" },

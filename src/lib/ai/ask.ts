@@ -12,7 +12,7 @@ const AskSchema = z.object({
 
 export type AskResult = Omit<z.infer<typeof AskSchema>, "sources"> & { source_note_ids: string[] };
 
-const SYSTEM = `You answer a college student's question using only their class's shared notes.
+const SYSTEM = `You answer a college student's question using only their class's shared notes and uploaded lecture materials explicitly approved for AI use.
 
 Ground every claim in the notes provided and cite them in the text by label, like (N2). If the notes only partly answer the question, answer what you can, set coverage to "partial", and say what's missing. If the notes don't cover it, set coverage to "not_in_notes" and suggest where to look (textbook chapter, office hours) instead of answering from general knowledge.
 
@@ -26,7 +26,7 @@ export async function answerFromNotes(courseTitle: string, question: string, not
     schema: AskSchema,
     system: SYSTEM,
     effort: "medium",
-    content: `Course: ${courseTitle}\n\nClass notes:\n${text}\n\nStudent's question: ${question}`,
+    content: `Course: ${courseTitle}\n\nClass notes and authorized slides:\n${text}\n\nStudent's question: ${question}`,
   });
   const { sources, ...rest } = result;
   return { ...rest, source_note_ids: labelsToIds(sources, labels) };

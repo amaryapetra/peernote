@@ -98,6 +98,45 @@ export type Database = {
           Rel<"enrollments_course_id_fkey", "course_id", "courses">,
         ];
       };
+      course_materials: {
+        Row: {
+          id: string;
+          course_id: string;
+          uploaded_by: string;
+          title: string;
+          description: string;
+          lecture_date: string;
+          source_type: "file" | "link";
+          file_type: "pdf" | "pptx" | null;
+          file_name: string | null;
+          storage_path: string | null;
+          link_url: string | null;
+          ai_allowed: boolean;
+          extracted_text: string;
+          sharing_confirmed_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          course_id: string;
+          uploaded_by: string;
+          title: string;
+          description?: string;
+          lecture_date: string;
+          source_type: "file" | "link";
+          file_type?: "pdf" | "pptx" | null;
+          file_name?: string | null;
+          storage_path?: string | null;
+          link_url?: string | null;
+          ai_allowed?: boolean;
+          extracted_text?: string;
+        };
+        Update: Record<string, never>;
+        Relationships: [
+          Rel<"course_materials_course_id_fkey", "course_id", "courses">,
+          Rel<"course_materials_uploaded_by_fkey", "uploaded_by", "profiles">,
+        ];
+      };
       notes: {
         Row: {
           id: string;

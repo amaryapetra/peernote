@@ -21,7 +21,7 @@ export type GapResult = Omit<z.infer<typeof GapSchema>, "missing"> & {
   missing: (Omit<z.infer<typeof GapSchema>["missing"][number], "sources"> & { source_note_ids: string[] })[];
 };
 
-const SYSTEM = `You help a college student fill gaps in their class notes by comparing them with classmates' notes from the same lecture.
+const SYSTEM = `You help a college student fill gaps in their class notes by comparing them with classmates' notes and authorized lecture slides from the same lecture.
 
 Find ideas, definitions, examples, formulas, or announcements that appear in classmates' notes but are missing or wrong in the student's notes. Focus on what would matter for understanding the material and doing well in the course. Skip trivial wording differences. If a classmate seems to have something wrong, don't present it as fact; mention the disagreement in questions_to_ask instead.
 
