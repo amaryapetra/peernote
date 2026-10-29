@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: "Your profile" };
 export default async function ProfilePage({ searchParams }: PageProps<"/profile">) {
   const { user, profile, supabase } = await getViewer();
   const sp = await searchParams;
-  const { data: contact } = await supabase.from("contact_cards").select("contact").eq("user_id", user.id).maybeSingle();
+  const { data: contact } = await supabase.from("contact_cards").select("contact, phone").eq("user_id", user.id).maybeSingle();
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -22,7 +22,6 @@ export default async function ProfilePage({ searchParams }: PageProps<"/profile"
       )}
       <Card>
         <ProfileForm
-          email={user.email}
           initial={{
             full_name: profile?.full_name ?? "",
             school: profile?.school ?? "Tulane University",
@@ -32,6 +31,7 @@ export default async function ProfilePage({ searchParams }: PageProps<"/profile"
             study_styles: profile?.study_styles ?? [],
             availability: profile?.availability ?? [],
             contact: contact?.contact ?? "",
+            phone: contact?.phone ?? "",
           }}
         />
       </Card>

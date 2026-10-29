@@ -18,10 +18,14 @@ Live site: _coming soon_ (custom domain to be added)
 | Catch up (AI) | `/courses/[id]/catch-up` | Builds a study guide from up to eight of the most-helpful notes for a class date. |
 | Ask the notes (AI) | `/courses/[id]/ask` | Postgres full-text search finds relevant notes; Claude answers with citations, or says the notes don't cover it. |
 | Study partners | `/partners`, course Classmates tab | Classmates ranked by shared courses, overlapping free time, and study style. Contact info is revealed only after both people agree. |
+| Phone contact (optional) | `/profile` | Add or remove a phone number; only accepted study partners can see it. Existing contact information is preserved. |
+| Direct messages | `/messages` | Private conversations between accepted study partners, with 2,000-character messages, paginated history, and refresh every 10 seconds while the conversation is visible. Removing a connection deletes its conversation for both people. |
 | Study groups | course Study groups tab, `/groups/[id]` | Create or join a capped-size group with a time, place, and members-only message board. |
 
 ## Security and rollout considerations
 
+- **Phone and messages rollout:** Apply `supabase/migrations/20261029153546_optional_phone_and_direct_messages.sql` before deploying this app version. The new phone field inherits contact-card privacy rules; direct messages enforce accepted participants and sender identity through RLS. No phone number is required to message. Test with two connected accounts plus an unrelated account. This feature does not include push notifications or read receipts.
+- **Course creation:** Use an insert without `RETURNING`, with a server-generated UUID. The members-only course SELECT policy runs before the creator-enrollment AFTER INSERT trigger when `RETURNING` is requested, causing valid creation attempts to fail.
 - **Course access:** Course metadata is searchable, but an invite code is required before joining and reading notes. Only members can view or share their course's code. PeerNote does not independently verify university enrollment; share codes only with classmates.
 - **Integrity screening:** Keyword checks always run. When an Anthropic key is configured, the entire note also receives AI screening; an AI outage prevents saving. Without an AI key, only keyword scanning runs and may miss prohibited content. No automated screen guarantees compliance with a school honor code.
 - **AI usage:** Apply every migration (including `20261027000000_atomic_ai_quota.sql`) before deploying the matching app code. AI quotas are reserved atomically in Postgres.

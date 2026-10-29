@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 // Pages that need a signed-in student. Everything else is public.
-const PROTECTED_PREFIXES = ["/dashboard", "/courses", "/notes", "/groups", "/partners", "/profile"];
+const PROTECTED_PREFIXES = ["/dashboard", "/courses", "/notes", "/groups", "/partners", "/messages", "/profile"];
 const AUTH_PAGES = ["/login", "/signup"];
 
 /**
