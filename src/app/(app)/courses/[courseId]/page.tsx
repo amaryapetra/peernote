@@ -51,6 +51,10 @@ export default async function CourseNotesPage({ params, searchParams }: PageProp
         </Alert>
       )}
       {sp.joined === "1" && <Alert tone="success">You joined {course.code}. Welcome to the class!</Alert>}
+      <p className="rounded-lg border border-line bg-surface px-4 py-3 text-sm text-muted">
+        Share this invite code with trusted classmates: <strong className="font-mono tracking-wide text-ink">{course.join_code}</strong>.
+        Anyone with the code and a PeerNote account can join.
+      </p>
       {sp.deleted === "1" && <Alert tone="success">Your note was deleted.</Alert>}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

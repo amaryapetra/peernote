@@ -52,10 +52,10 @@ export function JoinByCodeForm() {
           name="code"
           defaultValue={echoed(state, "code")}
           required
-          maxLength={6}
+          maxLength={12}
           autoCapitalize="characters"
           className={`${inputClass} font-mono uppercase tracking-widest`}
-          placeholder="A1B2C3"
+          placeholder="A1B2C3D4E5F6"
         />
         <SubmitButton variant="secondary" pendingText="Joining…">
           Join

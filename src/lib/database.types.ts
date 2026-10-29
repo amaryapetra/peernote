@@ -247,6 +247,14 @@ export type Database = {
     };
     Views: { [_ in never]: never };
     Functions: {
+      search_courses: {
+        Args: { p_query: string; p_limit?: number };
+        Returns: { id: string; code: string; title: string; term: string; instructor: string; school: string; members_count: number }[];
+      };
+      join_course_by_code: {
+        Args: { p_code: string };
+        Returns: string | null;
+      };
       consume_ai_quota: {
         Args: { p_kind: string };
         Returns: boolean;

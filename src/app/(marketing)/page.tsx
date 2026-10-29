@@ -41,7 +41,7 @@ const FEATURES = [
 ];
 
 const STEPS = [
-  { n: "1", title: "Join your courses", body: "Search for your class or add it with a join code your classmates can use." },
+  { n: "1", title: "Join your courses", body: "Search for your class and enter a classmate's invite code, or create a new course." },
   { n: "2", title: "Share notes after lecture", body: "Type, paste, or photograph your notes. Each upload gets a quick academic-integrity check." },
   { n: "3", title: "Study smarter together", body: "Fill gaps, catch up on missed days, and meet up with classmates who study the way you do." },
 ];
@@ -53,7 +53,7 @@ const FAQ = [
   },
   {
     q: "Who can see my notes?",
-    a: "Only students who have joined the same course on PeerNote. Notes are never public on the web, and your contact info is only shared with classmates after you accept their connection request.",
+    a: "Only users with an invite code who join the same course on PeerNote. Enrollment isn't verified by the university. Notes aren't public on the web, and contact info is only shared after you accept a connection request.",
   },
   {
     q: "Can I upload old exams or quiz answers?",

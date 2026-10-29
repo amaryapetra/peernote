@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { joinCourse } from "@/app/actions/courses";
 import { CreateCourseForm, JoinByCodeForm } from "@/components/course-forms";
-import { SubmitButton } from "@/components/form";
 import { Alert, Badge, Card, EmptyState, PageHeader, inputClass } from "@/components/ui";
 import { getViewer } from "@/lib/auth";
 import { suggestedTerms } from "@/lib/constants";
@@ -17,16 +15,10 @@ export default async function CoursesPage({ searchParams }: PageProps<"/courses"
   const myCourses = await getMyCourses();
   const mine = new Set(myCourses.map((c) => c.id));
 
-  let results: typeof myCourses = [];
+  type CourseMatch = { id: string; code: string; title: string; term: string; instructor: string; school: string; members_count: number };
+  let results: CourseMatch[] = [];
   if (q) {
-    // Strip characters that have meaning in PostgREST filter syntax.
-    const term = q.replace(/[%_,()*\\]/g, " ").trim();
-    const { data } = await supabase
-      .from("courses")
-      .select("*")
-      .or(`code.ilike.%${term}%,title.ilike.%${term}%,instructor.ilike.%${term}%`)
-      .order("members_count", { ascending: false })
-      .limit(20);
+    const { data } = await supabase.rpc("search_courses", { p_query: q, p_limit: 20 });
     results = data ?? [];
   }
 
@@ -68,12 +60,9 @@ export default async function CoursesPage({ searchParams }: PageProps<"/courses"
                       Open
                     </Link>
                   ) : (
-                    <form action={joinCourse}>
-                      <input type="hidden" name="courseId" value={course.id} />
-                      <SubmitButton size="sm" pendingText="Joining…">
-                        Join course
-                      </SubmitButton>
-                    </form>
+                    <a href="#join-with-code" className="text-sm font-medium text-brand hover:underline">
+                      Join with invite code
+                    </a>
                   )}
                 </li>
               ))}
@@ -114,8 +103,8 @@ export default async function CoursesPage({ searchParams }: PageProps<"/courses"
           <CreateCourseForm terms={suggestedTerms()} defaultSchool={profile?.school ?? "Tulane University"} />
         </Card>
         <Card className="h-fit">
-          <h2 className="font-display text-xl font-semibold">Have a join code?</h2>
-          <p className="mb-4 mt-1 text-sm text-muted">A classmate can share their course&apos;s 6-character code with you.</p>
+          <h2 id="join-with-code" className="scroll-mt-20 font-display text-xl font-semibold">Have an invite code?</h2>
+          <p className="mb-4 mt-1 text-sm text-muted">Ask a classmate for its 12-character invite code. Finding a class does not grant access to notes.</p>
           <JoinByCodeForm />
         </Card>
       </div>
