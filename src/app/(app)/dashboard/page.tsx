@@ -65,11 +65,30 @@ export default async function DashboardPage() {
 
   const profileDone = Boolean(profile && profile.availability.length && profile.study_styles.length);
   const setupSteps = [
-    { done: profileDone, label: "Add your study style and free times", href: "/profile" },
-    { done: courses.length > 0, label: "Join your first course", href: "/courses" },
-    { done: myNoteCount > 0, label: "Share notes from a lecture", href: lastCourse ? `/courses/${lastCourse.id}/notes/new` : "/courses" },
+    {
+      done: profileDone,
+      label: "Personalize your study profile",
+      description: "Add your study style and availability to help classmates find a good study match.",
+      href: "/profile",
+      action: "Edit profile",
+    },
+    {
+      done: courses.length > 0,
+      label: "Join or create a course",
+      description: "Find a class you're taking, or use an invite code shared by a classmate.",
+      href: "/courses",
+      action: "Browse courses",
+    },
+    {
+      done: myNoteCount > 0,
+      label: "Share your first lecture notes",
+      description: "Help classmates catch up and give PeerNote notes to compare.",
+      href: lastCourse ? `/courses/${lastCourse.id}/notes/new` : "/courses",
+      action: "Share notes",
+    },
   ];
-  const showSetup = setupSteps.some((s) => !s.done);
+  const completedSteps = setupSteps.filter((step) => step.done).length;
+  const showSetup = completedSteps < setupSteps.length;
 
   return (
     <div className="space-y-10">
@@ -84,31 +103,66 @@ export default async function DashboardPage() {
       />
 
       {showSetup && (
-        <Card className="bg-brand-soft/60">
-          <h2 className="font-display text-lg font-semibold">Getting started</h2>
-          <ol className="mt-3 space-y-2">
-            {setupSteps.map((step, i) => (
-              <li key={step.label} className="flex items-center gap-3 text-sm">
-                <span
-                  className={`flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
-                    step.done ? "bg-success text-white" : "border border-line bg-surface text-muted"
-                  }`}
-                  aria-hidden
-                >
-                  {step.done ? "✓" : i + 1}
-                </span>
-                {step.done ? (
-                  <span className="text-muted line-through">{step.label}</span>
-                ) : (
-                  <Link href={step.href} className="font-medium text-brand hover:underline">
-                    {step.label}
-                  </Link>
-                )}
-                <span className="sr-only">{step.done ? "(done)" : "(to do)"}</span>
-              </li>
-            ))}
-          </ol>
-        </Card>
+        <section aria-labelledby="getting-started-heading">
+          <Card className="bg-brand-soft/60">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 id="getting-started-heading" className="font-display text-xl font-semibold">
+                  Getting started with PeerNote
+                </h2>
+                <p className="mt-1 text-sm text-muted">
+                  Three quick steps to make the most of your classes and classmates.
+                </p>
+              </div>
+              <Badge tone="brand">{completedSteps} of {setupSteps.length} complete</Badge>
+            </div>
+            <div
+              role="progressbar"
+              aria-label="Getting started progress"
+              aria-valuemin={0}
+              aria-valuemax={setupSteps.length}
+              aria-valuenow={completedSteps}
+              className="mt-4 h-2 overflow-hidden rounded-full bg-surface-2"
+            >
+              <div
+                className="h-full rounded-full bg-brand transition-all"
+                style={{ width: `${(completedSteps / setupSteps.length) * 100}%` }}
+              />
+            </div>
+            <ol className="mt-5 grid gap-3 md:grid-cols-3">
+              {setupSteps.map((step, i) => (
+                <li key={step.label} className="flex gap-3 rounded-lg border border-line bg-surface p-4">
+                  <span
+                    className={`flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
+                      step.done ? "bg-success text-white" : "border border-line bg-surface-2 text-ink"
+                    }`}
+                    aria-hidden="true"
+                  >
+                    {step.done ? "✓" : i + 1}
+                  </span>
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-semibold">{step.label}</h3>
+                    <p className="mt-1 text-xs leading-relaxed text-muted">{step.description}</p>
+                    {step.done ? (
+                      <span className="mt-3 inline-block text-xs font-medium text-success">Completed</span>
+                    ) : (
+                      <Link href={step.href} className="mt-3 inline-block text-sm font-medium text-brand hover:underline">
+                        {step.action} <span aria-hidden="true">→</span>
+                      </Link>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ol>
+            <p className="mt-4 text-sm text-muted">
+              Want to study together?{" "}
+              <Link href="/partners" className="font-medium text-brand hover:underline">
+                Find classmates and study partners
+              </Link>
+              .
+            </p>
+          </Card>
+        </section>
       )}
 
       {lastCourse && (
