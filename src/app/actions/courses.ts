@@ -35,11 +35,12 @@ export async function createCourse(_prev: FormState, formData: FormData): Promis
   }
 
   const supabase = await createClient();
-  const { data, error } = await supabase
+  // RETURNING applies the members-only SELECT policy before the AFTER INSERT
+  // enrollment trigger runs. Supply the ID here and use a minimal insert instead.
+  const courseId = crypto.randomUUID();
+  const { error } = await supabase
     .from("courses")
-    .insert({ ...parsed.data, created_by: user.id })
-    .select("id")
-    .single();
+    .insert({ ...parsed.data, id: courseId, created_by: user.id });
 
   if (error) {
     if (error.code === "23505") {
@@ -47,7 +48,7 @@ export async function createCourse(_prev: FormState, formData: FormData): Promis
     }
     return { values, error: "Couldn't create that course. Try again." };
   }
-  redirect(`/courses/${data.id}?created=1`);
+  redirect(`/courses/${courseId}?created=1`);
 }
 
 export async function joinByCode(_prev: FormState, formData: FormData): Promise<FormState> {

@@ -30,9 +30,9 @@ export default async function PartnersPage() {
 
   const acceptedIds = accepted.map((c) => otherOf(c)?.id).filter((id): id is string => Boolean(id));
   const { data: contacts } = acceptedIds.length
-    ? await supabase.from("contact_cards").select("user_id, contact").in("user_id", acceptedIds)
+    ? await supabase.from("contact_cards").select("user_id, contact, phone").in("user_id", acceptedIds)
     : { data: [] };
-  const contactById = new Map((contacts ?? []).map((c) => [c.user_id, c.contact]));
+  const contactById = new Map((contacts ?? []).map((c) => [c.user_id, c]));
 
   const suggestions = classmates.filter((c) => c.connection.kind === "none").slice(0, 9);
   const profileIncomplete = !me?.availability.length || !me?.study_styles.length;
@@ -113,15 +113,19 @@ export default async function PartnersPage() {
                       </div>
                     </div>
                     <div className="rounded-lg bg-success-soft px-3 py-2 text-sm">
-                      <span className="text-muted">Contact: </span>
-                      <span className="break-all font-medium text-ink">{contact || "They haven't added contact info yet."}</span>
+                      {contact?.contact && <p><span className="text-muted">Contact: </span><span className="break-all font-medium text-ink">{contact.contact}</span></p>}
+                      {contact?.phone && <p><span className="text-muted">Phone: </span><a href={`tel:${contact.phone.replace(/[^+0-9]/g, "")}`} className="break-all font-medium text-ink underline">{contact.phone}</a></p>}
+                      {!contact?.contact && !contact?.phone && <p>They haven&apos;t shared external contact info. You can still message them here.</p>}
                     </div>
-                    <form action={removeConnection} className="mt-auto">
-                      <input type="hidden" name="connectionId" value={c.id} />
-                      <SubmitButton size="sm" variant="ghost" pendingText="Removing…">
-                        Remove
-                      </SubmitButton>
-                    </form>
+                    <ButtonLink href={`/messages/${c.id}`} variant="secondary" size="sm">Message</ButtonLink>
+                    <details className="mt-auto text-sm">
+                      <summary className="cursor-pointer text-muted">Remove connection</summary>
+                      <p className="my-2 text-muted">This also deletes your conversation for both of you.</p>
+                      <form action={removeConnection}>
+                        <input type="hidden" name="connectionId" value={c.id} />
+                        <SubmitButton size="sm" variant="danger" pendingText="Removing…">Remove connection and messages</SubmitButton>
+                      </form>
+                    </details>
                   </Card>
                 </li>
               );

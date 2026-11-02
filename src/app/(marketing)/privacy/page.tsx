@@ -28,6 +28,8 @@ export default function PrivacyPage() {
           <li>Uploaded lecture materials are stored in private course storage. Only enrolled course members can open them through time-limited links. Canvas links still require Canvas permission.</li>
           <li>Your profile is visible to classmates in your courses.</li>
           <li>Your contact info is visible only to classmates whose connection request you&apos;ve accepted, or who accepted yours.</li>
+          <li>Sharing a phone number is optional. You can remove it in your profile at any time.</li>
+          <li>Direct messages are visible in PeerNote only to the two accepted study partners. Removing a connection deletes its messages for both people.</li>
           <li>Your AI results (gap checks, catch-up guides, questions) are visible only to you.</li>
         </ul>
         <p className="text-muted">These rules are enforced by the database itself, not just by the website.</p>
