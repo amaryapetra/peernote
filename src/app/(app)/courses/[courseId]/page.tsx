@@ -25,17 +25,26 @@ export default async function CourseNotesPage({ params, searchParams }: PageProp
   const { courseId } = await params;
   const sp = await searchParams;
   const q = typeof sp.q === "string" ? sp.q.trim().slice(0, 100) : "";
+  const page = Math.min(10000, Math.max(1, Number.parseInt(String(sp.page ?? "1"), 10) || 1));
+  const pageSize = 24;
+  const searchArgs = new URLSearchParams(q ? { q } : {});
+  const pageHref = (next: number) => {
+    const params = new URLSearchParams(searchArgs);
+    params.set("page", String(next));
+    return `/courses/${courseId}?${params.toString()}`;
+  };
   const { course, user, supabase } = await getCourse(courseId);
 
   let query = supabase
     .from("notes")
-    .select("id, title, topic, lecture_date, content, helpful_count, author_id, author:profiles!notes_author_id_fkey(id, full_name)")
+    .select("id, title, topic, lecture_date, content, helpful_count, author_id, author:profiles!notes_author_id_fkey(id, full_name)", {count:"exact"})
     .eq("course_id", course.id)
     .order("lecture_date", { ascending: false })
     .order("helpful_count", { ascending: false })
-    .limit(150);
+    .range((page - 1) * pageSize, page * pageSize - 1);
   if (q) query = query.textSearch("search", q, { type: "websearch", config: "english" });
-  const { data: notes } = await query;
+  const { data: notes, count } = await query;
+  const totalPages = Math.max(1, Math.ceil((count ?? 0) / pageSize));
 
   const byDate = new Map<string, NonNullable<typeof notes>>();
   for (const note of notes ?? []) {
@@ -79,6 +88,13 @@ export default async function CourseNotesPage({ params, searchParams }: PageProp
         <ButtonLink href={`/courses/${course.id}/notes/new`}>Share notes</ButtonLink>
       </div>
 
+      <div className="flex items-center justify-between gap-2 text-sm text-muted">
+        <span>{count ?? 0} note{count === 1 ? "" : "s"} · page {page} of {totalPages}</span>
+        <div className="flex gap-2">
+          {page > 1 && <Link href={pageHref(page - 1)} className="rounded-md border border-line px-3 py-1 hover:bg-surface-2">Previous</Link>}
+          {page < totalPages && <Link href={pageHref(page + 1)} className="rounded-md border border-line px-3 py-1 hover:bg-surface-2">Next</Link>}
+        </div>
+      </div>
       {byDate.size === 0 ? (
         q ? (
           <EmptyState title={`No notes match “${q}”`}>Try a different word, or ask the AI on the Ask the notes tab.</EmptyState>
