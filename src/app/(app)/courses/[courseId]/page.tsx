@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Alert, Avatar, Badge, ButtonLink, EmptyState, inputClass } from "@/components/ui";
 import { getCourse } from "@/lib/data";
 import { formatLectureDate } from "@/lib/format";
+import { CopyInviteLink } from "@/components/copy-invite-link";
 
 export async function generateMetadata({ params }: PageProps<"/courses/[courseId]">): Promise<Metadata> {
   const { courseId } = await params;
@@ -51,20 +52,16 @@ export default async function CourseNotesPage({ params, searchParams }: PageProp
         </Alert>
       )}
       {sp.joined === "1" && <Alert tone="success">You joined {course.code}. Welcome to the class!</Alert>}
+      {sp.rotated === "1" && <Alert tone="success">Invite regenerated. Old codes and links no longer work.</Alert>}
       <p className="rounded-lg border border-line bg-surface px-4 py-3 text-sm text-muted">
         Share this invite code with trusted classmates: <strong className="font-mono tracking-wide text-ink">{course.join_code}</strong>.
-        Anyone with the code and a PeerNote account can join.
+        Anyone with the code and a PeerNote account can join. <CopyInviteLink code={course.join_code} />
       </p>
-      <section className="flex flex-col gap-4 rounded-xl border border-brand/30 bg-brand-soft p-5 sm:flex-row sm:items-center sm:justify-between" aria-label="Live study room">
-        <div>
-          <h2 className="font-display text-lg font-semibold text-ink">Study together on video</h2>
-          <p className="mt-1 text-sm text-muted">
-            Join classmates in {course.code} for a live study session with video, chat, and screen sharing.
-          </p>
-        </div>
-        <ButtonLink href={`/courses/${course.id}/video`}>Join video study room</ButtonLink>
+      <section className="flex flex-col gap-4 rounded-xl border border-brand/30 bg-brand-soft p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div><h2 className="font-display text-lg font-semibold text-ink">Study better together</h2>
+        <p className="mt-1 text-sm text-muted">Start a study group, set a meeting time and invite classmates to RSVP.</p></div>
+        <ButtonLink href={`/courses/${course.id}/groups`}>Explore study groups</ButtonLink>
       </section>
-
       {sp.deleted === "1" && <Alert tone="success">Your note was deleted.</Alert>}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

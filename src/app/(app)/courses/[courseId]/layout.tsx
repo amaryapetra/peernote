@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { leaveCourse } from "@/app/actions/courses";
+import { CopyInviteLink } from "@/components/copy-invite-link";
 import { CopyButton } from "@/components/copy-button";
 import { CourseTabs, TrackCourseVisit } from "@/components/course-tabs";
 import { SubmitButton } from "@/components/form";
@@ -9,7 +10,7 @@ import { getCourse } from "@/lib/data";
 
 export default async function CourseLayout({ children, params }: LayoutProps<"/courses/[courseId]">) {
   const { courseId } = await params;
-  const { course, enrolled } = await getCourse(courseId);
+  const { course, enrolled, user } = await getCourse(courseId);
 
   return (
     <div>
@@ -28,12 +29,13 @@ export default async function CourseLayout({ children, params }: LayoutProps<"/c
           {enrolled && (
             <div className="flex items-center gap-3 text-sm text-muted">
               <span>Join code</span>
-              <CopyButton value={course.join_code} label={`Copy join code ${course.join_code}`} />
+              <CopyButton value={course.join_code} label={`Copy join code ${course.join_code}`} /><CopyInviteLink code={course.join_code} />
               <details className="relative">
                 <summary className="cursor-pointer list-none rounded-md px-2 py-1 hover:bg-surface-2" aria-label="More course options">
                   •••
                 </summary>
                 <div className="absolute right-0 z-10 mt-1 w-44 rounded-lg border border-line bg-surface p-2 shadow-lg">
+                  {course.created_by === user.id && <Link href={`/courses/${course.id}/moderation`} className="mb-2 block p-2 text-sm font-medium hover:bg-surface-2">Course moderation</Link>}
                   <form action={leaveCourse}>
                     <input type="hidden" name="courseId" value={course.id} />
                     <SubmitButton variant="danger" size="sm" className="w-full" pendingText="Leaving…">

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { deleteGroup, joinGroup, leaveGroup } from "@/app/actions/groups";
 import { SubmitButton } from "@/components/form";
 import { GroupPostForm } from "@/components/group-forms";
+import { ReportContentForm } from "@/components/report-content-form";
 import { Alert, Avatar, Card, EmptyState, buttonClass } from "@/components/ui";
 import { requireUser } from "@/lib/auth";
 import { formatDate } from "@/lib/format";
@@ -130,6 +131,7 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/gr
                           <span className="text-muted">· {formatDate(p.created_at)}</span>
                         </p>
                         <p className="mt-1 whitespace-pre-wrap break-words text-sm">{p.body}</p>
+                        {p.author_id !== user.id && <ReportContentForm courseId={group.course_id} targetId={p.id} targetType="post" />}
                       </div>
                     </li>
                   ))}

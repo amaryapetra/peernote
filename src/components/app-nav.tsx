@@ -8,6 +8,7 @@ export const APP_LINKS = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/courses", label: "Courses" },
   { href: "/partners", label: "Study partners" },
+  { href: "/notifications", label: "Notifications" },
   { href: "/profile", label: "Profile" },
 ] as const;
 

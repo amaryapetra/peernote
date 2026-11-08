@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { deleteCourseMaterial } from "@/app/actions/materials";
 import { UploadMaterialForm, LinkMaterialForm } from "@/components/material-forms";
+import { ReportContentForm } from "@/components/report-content-form";
 import { Card, EmptyState, Badge } from "@/components/ui";
 import { getCourse } from "@/lib/data";
 import { formatDate } from "@/lib/format";
@@ -54,6 +55,7 @@ export default async function MaterialsPage({ params, searchParams }: PageProps<
                       <Badge tone={item.source_type === "file" ? "brand" : "neutral"}>
                         {fileKindLabel(item.file_type)}
                       </Badge>
+                      {item.uploaded_by !== user.id && <ReportContentForm courseId={course.id} targetId={item.id} targetType="material" />}
                       {item.uploaded_by === user.id && (
                         <form action={deleteCourseMaterial}>
                           <input type="hidden" name="materialId" value={item.id} />
