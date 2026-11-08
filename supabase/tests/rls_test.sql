@@ -243,5 +243,9 @@ reset role;
 select pg_temp.act('00000000-0000-0000-0000-00000000000b');
 select pg_temp.expect_fail($q$select public.join_course_by_code('ABCDEF123456')$q$, 'banned user denied invite'); 
 reset role;
+select pg_temp.check(not has_function_privilege('authenticated','public.enqueue_group_reminders()','EXECUTE'), 'client cannot send reminders for others');
+set role service_role;
+select pg_temp.check(public.enqueue_group_reminders() >= 0, 'scheduled reminder generator runs');
+reset role;
 \echo ALL_RLS_TESTS_PASSED
 

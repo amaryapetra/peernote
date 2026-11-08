@@ -18,8 +18,8 @@ export type Database = {
   public: {
     Tables: {
       notifications: {
-        Row: { id: string; user_id: string; actor_id: string | null; kind: "new_note" | "partner_accepted" | "group_message" | "moderation"; title: string; body: string; href: string; read_at: string | null; created_at: string };
-        Insert: { user_id: string; actor_id?: string | null; kind: "new_note" | "partner_accepted" | "group_message" | "moderation"; title: string; body?: string; href: string; read_at?: string | null };
+        Row: { id: string; user_id: string; actor_id: string | null; kind: "new_note" | "partner_accepted" | "group_message" | "moderation" | "meeting_reminder"; title: string; body: string; href: string; read_at: string | null; created_at: string };
+        Insert: { user_id: string; actor_id?: string | null; kind: "new_note" | "partner_accepted" | "group_message" | "moderation" | "meeting_reminder"; title: string; body?: string; href: string; read_at?: string | null };
         Update: { read_at?: string | null };
         Relationships: [Rel<"notifications_user_id_fkey", "user_id", "profiles">, Rel<"notifications_actor_id_fkey","actor_id","profiles">];
       };
@@ -40,6 +40,12 @@ export type Database = {
         Insert: { user_id: string; course_id: string };
         Update: Record<string, never>;
         Relationships: [Rel<"material_upload_reservations_user_id_fkey","user_id","profiles">, Rel<"material_upload_reservations_course_id_fkey","course_id","courses">];
+      };
+      group_reminder_deliveries: {
+        Row: { group_id: string; user_id: string; meeting_starts_at: string; window_label: "24h" | "1h"; created_at: string };
+        Insert: { group_id: string; user_id: string; meeting_starts_at: string; window_label: "24h" | "1h" };
+        Update: Record<string,never>;
+        Relationships: [Rel<"group_reminder_deliveries_group_id_fkey","group_id","study_groups">, Rel<"group_reminder_deliveries_user_id_fkey","user_id","profiles">];
       };
       group_rsvps: {
         Row: { group_id: string; user_id: string; status: "going" | "maybe" | "not_going"; updated_at: string };
@@ -326,6 +332,7 @@ export type Database = {
     };
     Views: { [_ in never]: never };
     Functions: {
+      enqueue_group_reminders: { Args: Record<string,never>; Returns: number };
       rotate_course_invite: { Args: { p_course: string }; Returns: string };
       moderate_course_member: { Args: { p_course: string; p_member: string; p_actor: string }; Returns: boolean };
       reserve_material_upload: { Args: { p_course: string }; Returns: boolean };
