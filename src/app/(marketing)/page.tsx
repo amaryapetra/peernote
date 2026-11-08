@@ -118,11 +118,11 @@ export default function HomePage() {
               Nobody catches everything in class.
             </h2>
             <p className="leading-relaxed text-muted">
-              Some days you're absent. Other days you miss a formula or a professor's example.
-              There shouldn't be a scramble through group chats just to piece together one lecture.
+              Some days you&apos;re absent. Other days you miss a formula or a professor&apos;s example.
+              There shouldn&apos;t be a scramble through group chats just to piece together one lecture.
             </p>
             <p className="leading-relaxed text-muted">
-              PeerNote brings classmates' notes, permitted class materials, and study connections into each course,
+              PeerNote brings classmates&apos; notes, permitted class materials, and study connections into each course,
               so you can spend less time searching and more time learning.
             </p>
           </div>
@@ -145,7 +145,7 @@ export default function HomePage() {
               <Badge tone="brand">01 · Fill the gaps</Badge>
               <h3 className="mt-4 font-display text-2xl font-semibold">See what you missed. Understand why it matters.</h3>
               <p className="mt-3 leading-relaxed text-muted">
-                Compare your notes with classmates' notes from the same lecture and discover the explanations,
+                Compare your notes with classmates&apos; notes from the same lecture and discover the explanations,
                 examples, or key terms that slipped by you.
               </p>
               <p className="mt-4 text-sm font-medium text-brand-strong">Make your notes more complete, without starting over.</p>
@@ -160,7 +160,7 @@ export default function HomePage() {
                 Pick a lecture date and build a structured guide from notes classmates have shared,
                 plus lecture materials approved for AI analysis.
               </p>
-              <p className="mt-4 text-sm font-medium text-brand-strong">Organized ideas, grounded in your class's material.</p>
+              <p className="mt-4 text-sm font-medium text-brand-strong">Organized ideas, grounded in your class&apos;s material.</p>
             </div>
             <div className="lg:order-1"><CatchUpPreview /></div>
           </div>
