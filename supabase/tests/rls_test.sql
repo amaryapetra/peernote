@@ -216,6 +216,12 @@ select pg_temp.check((select count(*) from auth.users where email='a@tulane.edu'
 select pg_temp.check(not has_table_privilege('anon','public.notifications','SELECT'), 'anonymous cannot see notifications');
 select pg_temp.check(not has_table_privilege('authenticated','public.course_bans','SELECT'), 'ban list is private');
 select pg_temp.check(not has_function_privilege('authenticated','public.moderate_course_member(uuid,uuid,uuid)','EXECUTE'), 'client cannot call moderation privilege');
+-- Publish a fresh note after C has joined, to test the notification trigger.
+set role service_role;
+insert into notes (course_id, author_id, title, lecture_date, content)
+values ('10000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-00000000000a',
+ 'Review session notes','2026-10-03','Here are some helpful tips for the upcoming lecture in our course.');
+reset role;
 select pg_temp.act('00000000-0000-0000-0000-00000000000c');
 select pg_temp.expect_fail($q$update notifications set user_id='00000000-0000-0000-0000-00000000000a'$q$, 'notifications cannot be reassigned');
 select pg_temp.check((select count(*) from notifications where user_id=auth.uid())>=1, 'member receives note notification');
