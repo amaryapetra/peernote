@@ -244,8 +244,26 @@ select pg_temp.act('00000000-0000-0000-0000-00000000000b');
 select pg_temp.expect_fail($q$select public.join_course_by_code('ABCDEF123456')$q$, 'banned user denied invite'); 
 reset role;
 select pg_temp.check(not has_function_privilege('authenticated','public.enqueue_group_reminders()','EXECUTE'), 'client cannot send reminders for others');
+-- An actual group RSVP triggers at most one reminder per window.
 set role service_role;
-select pg_temp.check(public.enqueue_group_reminders() >= 0, 'scheduled reminder generator runs');
+update public.study_groups set meeting_starts_at=now()+interval '60 minutes',
+ meeting_ends_at=now()+interval '120 minutes';
+reset role;
+select pg_temp.act('00000000-0000-0000-0000-00000000000a');
+insert into group_rsvps(group_id,user_id,status)
+select g.id,auth.uid(),'going' from study_groups g limit 1;
+select pg_temp.check((select count(*) from group_rsvps where user_id=auth.uid())=1,'organizer can RSVP');
+reset role;
+select pg_temp.act('00000000-0000-0000-0000-00000000000c');
+select pg_temp.expect_fail($q$insert into group_rsvps(group_id,user_id,status)
+select id,auth.uid(),'going' from study_groups limit 1$q$, 'non-group member cannot RSVP');
+reset role;
+set role service_role;
+select pg_temp.check(public.enqueue_group_reminders()=1,'reminder generated once for an RSVP');
+select pg_temp.check(public.enqueue_group_reminders()=0,'reminder deduplicated on subsequent runs');
+reset role;
+select pg_temp.act('00000000-0000-0000-0000-00000000000a');
+select pg_temp.check((select count(*) from notifications where kind='meeting_reminder')=1,'upcoming meeting delivered to attendee inbox');
 reset role;
 \echo ALL_RLS_TESTS_PASSED
 
