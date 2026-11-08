@@ -4,6 +4,7 @@ import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAiConfigured, friendlyAiError } from "@/lib/ai/client";
+import { validateClassMaterial, verifyExternalMalwareScan } from "@/lib/upload-security";
 import { extractMaterialTextForAi, MATERIAL_TEXT_LIMIT } from "@/lib/material-text";
 import { INLINE_TYPES, fileExtension, isExecutable, isInlineType } from "@/lib/material-files";
 import { prepareNoteImport } from "@/lib/note-import";
@@ -43,10 +44,23 @@ export async function POST(request: NextRequest) {
 
   const bytes = Buffer.from(await file.arrayBuffer());
   if (isExecutable(file.name, bytes)) return fail("Programs and installers can't be shared. Upload the class material itself.", 415);
+  const unsafeReason = validateClassMaterial(file.name, bytes);
+  if (unsafeReason) return fail(unsafeReason, 415);
+  try { await verifyExternalMalwareScan(bytes, file.name); }
+  catch (error) {
+    console.error("malware scan rejected or failed", error);
+    return fail(error instanceof Error ? error.message : "File scanning failed.", 422);
+  }
+  const { data: reserved, error: quotaError } = await supabase.rpc("reserve_material_upload", { p_course: courseId });
+  if (quotaError || !reserved) return fail(quotaError ? "Couldn't verify your upload allowance." : "You've uploaded 12 files in the last 24 hours. Try again later.", 429);
 
   // Read the file's text for the preview and (if allowed) the AI study tools.
   // Documents, slides, and spreadsheets are read locally; PDFs and photos need AI.
-  const prepared = prepareNoteImport(bytes, file.name);
+  let prepared: ReturnType<typeof prepareNoteImport>;
+  try { prepared = prepareNoteImport(bytes, file.name); }
+  catch {
+    return fail("Could not read this file. Try exporting to PDF or a common Office format.", 422);
+  }
   let text = prepared.kind === "text" ? prepared.text.slice(0, MATERIAL_TEXT_LIMIT) : "";
   try {
     if (prepared.kind === "ai" && wantsAi) {

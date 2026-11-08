@@ -57,8 +57,8 @@ export function UploadMaterialForm({ courseId }: { courseId: string }) {
         <Field label="Lecture date" htmlFor="upload-date"><input id="upload-date" name="lectureDate" type="date" className={inputClass} required /></Field>
       </div>
       <Field label="Description (optional)" htmlFor="upload-description"><input id="upload-description" name="description" maxLength={600} className={inputClass} placeholder="Topics covered in class" /></Field>
-      <Field label="File" htmlFor="upload-file" hint="Any file type, up to 4 MB. PDFs and images preview here; documents, slides, and spreadsheets show a text preview. Other files can be downloaded.">
-        <input id="upload-file" name="file" type="file" required className={inputClass} />
+      <Field label="File" htmlFor="upload-file" hint="PDF, Word, PowerPoint, Excel, OpenDocument, text or common image (4 MB maximum; 12 uploads per day). Archives and programs are blocked.">
+        <input id="upload-file" name="file" type="file" accept=".pdf,.docx,.pptx,.xlsx,.odt,.ods,.odp,.txt,.md,.rtf,.csv,.tsv,.jpg,.jpeg,.png,.webp,.gif" required className={inputClass} />
       </Field>
       <label className="flex items-start gap-2 text-sm text-muted">
         <input type="checkbox" name="aiAllowed" className="mt-1 accent-brand" />

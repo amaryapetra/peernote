@@ -161,3 +161,7 @@ Add a new file in `supabase/migrations/` (named with a timestamp so it sorts las
 ### University email access
 
 New PeerNote signups must use an email ending in exactly `@tulane.edu`. The signup form validates this and `20261029180000_tulane_only_signup.sql` adds a `BEFORE INSERT` trigger on `auth.users` so direct Supabase Auth requests cannot bypass it. Existing accounts are not changed. Keep email verification enabled to establish ownership of a university address.
+
+### File upload protections (pilot)
+File uploads are limited to **4 MB per file**, **12 upload attempts per student per 24 hours**, and a strict allowlist of ordinary classroom formats. Headers are checked to catch mislabeled PDFs/images/documents, executables and archives are rejected, and course-level reports are reviewed by course creators. These checks do **not** replace full antivirus scanning.
+For an externally managed scanner, configure `MALWARE_SCAN_URL` (an HTTPS endpoint accepting raw bytes via POST and returning `{"clean":true}`) and `MALWARE_SCAN_TOKEN` in Vercel server-side environment variables. If configured, failed or inconclusive scans block an upload. Do not publicly launch broad file sharing without configuring and evaluating a reputable scanner and its data-processing terms.
