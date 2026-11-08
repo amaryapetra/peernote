@@ -18,7 +18,7 @@ export default function PrivacyPage() {
         <p className="text-muted">
           Your name, email, and the profile details you choose to add (major, graduation year, study style, and when
           you&apos;re free). The courses you join, the notes and authorized class materials you share (including file storage), study groups,
-          connection requests, and the AI results you generate so you can come back to them later.
+          connection requests, content reports you submit, in-app notifications, and the AI results you generate so you can come back to them later.
         </p>
       </section>
       <section className="space-y-3">
@@ -26,6 +26,8 @@ export default function PrivacyPage() {
         <ul className="list-disc space-y-2 pl-5 text-muted">
           <li>Notes, study groups, and the class roster are visible to users who join the course. Joining a course requires a private 12-character invite code. PeerNote does not independently verify university enrollment.</li>
           <li>Uploaded lecture materials are stored in private course storage. Only enrolled course members can open them through time-limited links. Canvas links still require Canvas permission.</li>
+          <li>Course creators can review content reports and remove content or suspend course membership. The report review queue does not identify reporters.</li>
+          <li>Notifications about course activity and study groups are visible only to the recipient.</li>
           <li>Your profile is visible to classmates in your courses.</li>
           <li>Your contact info is visible only to classmates whose connection request you&apos;ve accepted, or who accepted yours.</li>
           <li>Your AI results (gap checks, catch-up guides, questions) are visible only to you.</li>

@@ -42,7 +42,7 @@ export default function AboutPage() {
           wanted to make swapping those pieces easy, and to make it just as easy to find the right person to study with.
         </p>
         <p className="text-muted">
-          We also believe a tool like this has to protect academic integrity. That&apos;s why every upload is screened,
+          We also believe a tool like this has to protect academic integrity. That&apos;s why notes have academic-integrity checks and class files have upload safeguards,
           and why PeerNote will never be a place to trade exam answers.
         </p>
       </section>

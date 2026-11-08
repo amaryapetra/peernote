@@ -2,7 +2,7 @@
 
 PeerNote helps students in the same course share class notes, catch up on lectures they missed, and find classmates to study with. AI (Claude, by Anthropic) compares notes between classmates, fills in concepts one student missed, answers questions from the class's notes, and screens every upload so PeerNote never works as a test bank.
 
-Live site: _coming soon_ (custom domain to be added)
+Live site: https://peernote-eta.vercel.app
 
 ## What it does
 
@@ -11,7 +11,7 @@ Live site: _coming soon_ (custom domain to be added)
 | Accounts | `/signup`, `/login` | Supabase Auth (email and password, email confirmation, password reset). Everything a student creates is saved to their account. |
 | Pick up where you left off | `/dashboard` | Remembers the last course you opened and shows new classmate notes, requests, groups, and saved AI results. |
 | Courses | `/courses` | Organize joined courses into expandable semester folders; search for a course or add one. Joining a class requires its private 12-character invite code. |
-| Class materials | `/courses/[id]/materials` | Members can upload authorized class files of any type (up to 4 MB; programs and installers are blocked), save Canvas/HTTPS links, organize by lecture date, preview PDFs and images, see a text preview of documents, slides, and spreadsheets, and optionally opt into AI-assisted study features. Private files use Supabase Storage and short-lived signed URLs. |
+| Class materials | `/courses/[id]/materials` | Members can upload authorized PDFs, Office files, OpenDocument files, text and common images (up to 4 MB, 12 uploads/day; executables and archives are blocked), save Canvas/HTTPS links, organize by lecture date, preview PDFs and images, see a text preview of documents, slides, and spreadsheets, and optionally opt into AI-assisted study features. Private files use Supabase Storage and short-lived signed URLs. |
 | Share notes | `/courses/[id]/notes/new` | Markdown editor with preview, autosaved draft, and import from any file: Word, PowerPoint, Excel, OpenDocument, RTF, HTML, and text or code files are read directly (no AI needed); photos and PDFs are transcribed with AI. iPhone HEIC and other photo formats are converted to JPG in the browser first. |
 | Integrity screening | every note save | Keyword scan plus an AI check. Real quiz/exam content and answer keys are rejected with a reason. Notes can only be written by the server after the check passes. |
 | Fill the gaps (AI) | a note you wrote | Compares your notes with classmates' notes from the same lecture and lists what you missed, with sources. |
@@ -19,19 +19,23 @@ Live site: _coming soon_ (custom domain to be added)
 | Ask the notes (AI) | `/courses/[id]/ask` | Postgres full-text search finds relevant notes; Claude answers with citations, or says the notes don't cover it. |
 | Study partners | `/partners`, course Classmates tab | Classmates ranked by shared courses, overlapping free time, and study style. Contact info is revealed only after both people agree. |
 | Study groups | course Study groups tab, `/groups/[id]` | Create or join a capped-size group with a time, place, and members-only message board. |
-| Video study room | `/courses/[id]/video` | Enrolled course members can launch an embedded Jitsi Meet video call for their class, including screen sharing and chat. |
+| Video study room | `/courses/[id]/video` | Temporarily disabled. An access-controlled video provider is required before re-enabling private calls. |
+| Notifications | `/notifications` | Private in-app alerts for new course notes, accepted study partner requests, group messages, and meeting reminders. |
+| Course moderation | `/courses/[id]/moderation` | Course creators review content reports, remove inappropriate content, block unauthorized students and rotate private invite links. |
+| Course invite links | `/join/[code]` | Classmates join from a shareable link after signing into PeerNote with a valid Tulane account. |
 
-## Video study room notes
+## Video-room security
 
-The course's **Video study room** tab embeds Jitsi Meet after the user chooses to join. No API key or additional package is required. Each class has its own stable, randomly generated meeting name stored in Supabase. The room table has row-level security so only enrolled students can read it. Only enrolled students can get the link inside PeerNote, but **the external Jitsi room is not access-controlled by Supabase**: someone with the meeting URL may join. Treat the link as sensitive; do not use the room for confidential information. Jitsi may require a host to authenticate depending on its current service policy. Test camera/microphone permissions, iframe availability, and multiple simultaneous browsers on the deployment domain before relying on this feature.
+The former embedded Jitsi room is paused. A Jitsi meeting URL is not protected by Supabase course membership and can be shared outside PeerNote. The old `course_video_rooms` records are preserved, but their meeting URLs are not shown or joined from the site. Private video calls need a provider that authenticates each participant (for example, an access-token-secured video service) before the feature can return.
 
-Apply `supabase/migrations/20261029180000_course_video_rooms.sql` in the Supabase SQL Editor (or with `supabase db push`) before viewing this tab. This creates a video room for every existing course and automatically creates one for new courses. If the migration has not run, the tab will show a setup message instead of a call. Video calling uses Jitsi; Supabase handles student access and the stored room name, not the video stream. The Jitsi service may require host authentication. Test with two classmates on separate browsers before using it for a study session.\n\n## Security and rollout considerations
+## Security and rollout considerations
 
 - **Course access:** Course metadata is searchable, but an invite code is required before joining and reading notes. Only members can view or share their course's code. PeerNote does not independently verify university enrollment; share codes only with classmates.
 - **Integrity screening:** Keyword checks always run. When an Anthropic key is configured, the entire note also receives AI screening; an AI outage prevents saving. Without an AI key, only keyword scanning runs and may miss prohibited content. No automated screen guarantees compliance with a school honor code.
 - **AI usage:** Apply every migration (including `20261027000000_atomic_ai_quota.sql`) before deploying the matching app code. AI quotas are reserved atomically in Postgres.
 - **Invite-code rollout:** Apply `20261029160000_secure_course_invites.sql` with the corresponding app release. It rotates previously exposed six-character codes to twelve characters and blocks direct enrollments. Existing members retain access; old shared codes stop working. The app does not collect Canvas screenshots.
 - **Class materials rollout:** Apply `supabase/migrations/20261029170000_course_materials.sql` before deploying this version. File uploads use a private `course-materials` Storage bucket with course-members-only read access; uploads and deletions are performed server-side after membership checks. An uploader must confirm they have permission to share. Apply `20261029190000_materials_any_file_type.sql` before deploying the any-file-type release; it widens the allowed file types. Only real PDFs and images open in the browser; every other file is stored as a generic download so an uploaded web page or script can't run for classmates. Only opt-in extracted text is available for AI; Canvas links are never fetched.
+- **Pilot upgrade:** Apply `20261108000000_student_safety.sql` and `20261108001000_group_reminders.sql` to Supabase before deploying the matching app. These create in-app notifications, course reporting and moderation, join bans, upload-rate reservations, structured study group meetings and RSVP reminders. Existing content and accounts are kept.
 - **Privacy:** Avoid uploading private or instructor-restricted content. Test with multiple accounts and live Supabase/Anthropic before a public launch.
 
 ## Tech stack and architecture
