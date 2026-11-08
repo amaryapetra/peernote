@@ -118,7 +118,7 @@ begin
  if auth.uid() is null or not exists(
   select 1 from public.courses where id=p_course and created_by=auth.uid())
  then raise exception 'Only the course creator can rotate its invite' using errcode='42501'; end if;
- v_code := upper(encode(gen_random_bytes(6),'hex'));
+ v_code := upper(left(replace(gen_random_uuid()::text,'-',''),12));
  update public.courses set join_code=v_code where id=p_course;
  return v_code;
 end;
