@@ -211,4 +211,31 @@ insert into auth.users (id,email) values ('a0000000-0000-0000-0000-000000000004'
 select pg_temp.check((select count(*) from auth.users where id='a0000000-0000-0000-0000-000000000004') = 1, 'allow Tulane signup');
 select pg_temp.check((select count(*) from auth.users where email='a@tulane.edu') = 1, 'existing accounts preserved');
 
+
+-- New pilot safety features.
+select pg_temp.check(not has_table_privilege('anon','public.notifications','SELECT'), 'anonymous cannot see notifications');
+select pg_temp.check(not has_table_privilege('authenticated','public.course_bans','SELECT'), 'ban list is private');
+select pg_temp.check(not has_function_privilege('authenticated','public.moderate_course_member(uuid,uuid,uuid)','EXECUTE'), 'client cannot call moderation privilege');
+select pg_temp.act('00000000-0000-0000-0000-00000000000c');
+select pg_temp.expect_fail($q$update notifications set user_id='00000000-0000-0000-0000-00000000000a'$q$, 'notifications cannot be reassigned');
+select pg_temp.check((select count(*) from notifications where user_id=auth.uid())>=1, 'member receives note notification');
+select pg_temp.check(public.reserve_material_upload('10000000-0000-0000-0000-000000000001'), 'upload reservation allowed for member');
+select pg_temp.expect_fail($q$select public.rotate_course_invite('10000000-0000-0000-0000-000000000001')$q$, 'non-owner cannot rotate code'); 
+reset role;
+
+select pg_temp.act('00000000-0000-0000-0000-00000000000a');
+select pg_temp.check(length(public.rotate_course_invite('10000000-0000-0000-0000-000000000001'))=12, 'creator rotates invite');
+reset role;
+-- After B left the course, creator bans the former member and the ban
+-- must block rejoining, even with a freshly rotated invite code.
+set role service_role;
+select pg_temp.check(public.moderate_course_member('10000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-00000000000b','00000000-0000-0000-0000-00000000000a'), 'creator bans former classmate');
+reset role;
+set role service_role;
+update courses set join_code='ABCDEF123456' where id='10000000-0000-0000-0000-000000000001';
+reset role;
+select pg_temp.act('00000000-0000-0000-0000-00000000000b');
+select pg_temp.expect_fail($q$select public.join_course_by_code('ABCDEF123456')$q$, 'banned user denied invite'); 
+reset role;
 \echo ALL_RLS_TESTS_PASSED
+
