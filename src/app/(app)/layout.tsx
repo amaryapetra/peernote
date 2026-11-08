@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { AppNavLinks, StaticNavLinks } from "@/components/app-nav";
 import { LogoMark } from "@/components/logo";
 import { UserMenu } from "@/components/user-menu";
+import { NotificationsBell } from "@/components/notifications-bell";
 import { Skeleton } from "@/components/ui";
 
 // Signed-in pages are private to each student, so keep them out of search results.
@@ -25,9 +26,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
               </Suspense>
             </nav>
           </div>
-          <Suspense fallback={<Skeleton className="h-7 w-32" />}>
-            <UserMenu />
-          </Suspense>
+          <div className="flex items-center gap-3"><Suspense fallback={null}><NotificationsBell /></Suspense><Suspense fallback={<Skeleton className="h-7 w-32" />}><UserMenu /></Suspense></div>
         </div>
         <nav aria-label="App" className="flex gap-1 overflow-x-auto border-t border-line px-3 py-2 md:hidden">
           <Suspense fallback={<StaticNavLinks />}>

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { deleteCourseMaterial } from "@/app/actions/materials";
 import { UploadMaterialForm, LinkMaterialForm } from "@/components/material-forms";
+import { ReportContentForm } from "@/components/report-content-form";
 import { Card, EmptyState, Badge } from "@/components/ui";
 import { getCourse } from "@/lib/data";
 import { formatDate } from "@/lib/format";
@@ -17,10 +18,21 @@ export default async function MaterialsPage({ params, searchParams }: PageProps<
   const { course, user, supabase, enrolled } = await getCourse(courseId);
   if (!enrolled) notFound();
   const query = await searchParams;
-  const { data, error } = await supabase.from("course_materials")
-    .select("*").eq("course_id", course.id)
+  const q = typeof query.q === "string" ? query.q.trim().replace(/[%_,()*\\]/g," ").slice(0,80) : "";
+  const page = Math.min(10000,Math.max(1,Number.parseInt(String(query.page ?? "1"),10)||1));
+  const pageSize = 24;
+  const pageHref = (next:number) => {
+    const params = new URLSearchParams(q?{q}:{});
+    params.set("page",String(next));
+    return `/courses/${courseId}/materials?${params.toString()}`;
+  };
+  let list = supabase.from("course_materials")
+    .select("*", {count:"exact"}).eq("course_id", course.id)
     .order("lecture_date", { ascending: false })
-    .order("created_at", { ascending: false }).limit(200);
+    .order("created_at", { ascending: false }).range((page-1)*pageSize,page*pageSize-1);
+  if (q) list = list.ilike("title", `%${q}%`);
+  const { data, error, count } = await list;
+  const totalPages = Math.max(1,Math.ceil((count??0)/pageSize));
   const materials = (data ?? []) as Material[];
   const byDate = new Map<string, Material[]>();
   for (const item of materials) {
@@ -36,12 +48,24 @@ export default async function MaterialsPage({ params, searchParams }: PageProps<
           Keep authorized slides, handouts, readings, and Canvas links alongside your course notes. Only joined members can see shared files.
         </p>
       </header>
+      <form role="search" className="flex max-w-md gap-2">
+        <label htmlFor="material-search" className="sr-only">Search class materials</label>
+        <input id="material-search" name="q" defaultValue={q} placeholder="Search files and titles" className="h-10 min-w-0 flex-1 rounded-lg border border-line bg-surface px-3 text-sm"/>
+        <button type="submit" className="rounded-lg bg-brand px-4 text-sm font-medium text-on-brand">Search</button>
+      </form>
+      <div className="flex items-center justify-between gap-2 text-sm text-muted">
+        <span>{count??0} item{count===1?"":"s"} · page {page} of {totalPages}</span>
+        <div className="flex gap-2">
+          {page>1 && <Link href={pageHref(page-1)} className="rounded-md border border-line px-3 py-1">Previous</Link>}
+          {page<totalPages && <Link href={pageHref(page+1)} className="rounded-md border border-line px-3 py-1">Next</Link>}
+        </div>
+      </div>
       {query.added === "1" && <p role="status" className="rounded-lg border border-line bg-brand-soft p-3 text-sm">Class material link added.</p>}
       {query.deleted === "1" && <p role="status" className="rounded-lg border border-line bg-brand-soft p-3 text-sm">Material removed.</p>}
       {error ? (
         <p role="alert" className="text-sm text-danger">Unable to load class materials.</p>
       ) : byDate.size === 0 ? (
-        <EmptyState title="No class materials yet">Upload authorized class files or link to materials in Canvas to get started.</EmptyState>
+        <EmptyState title={q?"No matching materials":"No class materials yet"}>{q?"Try another search term.":"Upload authorized class files or link to materials in Canvas to get started."}</EmptyState>
       ) : (
         <div className="space-y-7">
           {[...byDate.entries()].map(([date, items]) => (
@@ -54,6 +78,7 @@ export default async function MaterialsPage({ params, searchParams }: PageProps<
                       <Badge tone={item.source_type === "file" ? "brand" : "neutral"}>
                         {fileKindLabel(item.file_type)}
                       </Badge>
+                      {item.uploaded_by !== user.id && <ReportContentForm courseId={course.id} targetId={item.id} targetType="material" />}
                       {item.uploaded_by === user.id && (
                         <form action={deleteCourseMaterial}>
                           <input type="hidden" name="materialId" value={item.id} />

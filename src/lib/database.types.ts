@@ -17,6 +17,42 @@ export type Database = {
   __InternalSupabase: { PostgrestVersion: "13.0.5" };
   public: {
     Tables: {
+      notifications: {
+        Row: { id: string; user_id: string; actor_id: string | null; kind: "new_note" | "partner_accepted" | "group_message" | "moderation" | "meeting_reminder"; title: string; body: string; href: string; read_at: string | null; created_at: string };
+        Insert: { user_id: string; actor_id?: string | null; kind: "new_note" | "partner_accepted" | "group_message" | "moderation" | "meeting_reminder"; title: string; body?: string; href: string; read_at?: string | null };
+        Update: { read_at?: string | null };
+        Relationships: [Rel<"notifications_user_id_fkey", "user_id", "profiles">, Rel<"notifications_actor_id_fkey","actor_id","profiles">];
+      };
+      course_reports: {
+        Row: { id: string; course_id: string; reporter_id: string; target_type: "note" | "material" | "post"; target_id: string; reason: "copyright" | "exam" | "harassment" | "spam" | "other"; details: string; status: "open" | "dismissed" | "removed"; reviewed_at: string | null; created_at: string };
+        Insert: { course_id: string; reporter_id: string; target_type: "note" | "material" | "post"; target_id: string; reason: "copyright" | "exam" | "harassment" | "spam" | "other"; details?: string };
+        Update: { status?: "open" | "dismissed" | "removed"; reviewed_at?: string | null };
+        Relationships: [Rel<"course_reports_course_id_fkey","course_id","courses">, Rel<"course_reports_reporter_id_fkey","reporter_id","profiles">];
+      };
+      course_bans: {
+        Row: { course_id: string; user_id: string; banned_by: string | null; created_at: string };
+        Insert: { course_id: string; user_id: string; banned_by?: string | null };
+        Update: Record<string, never>;
+        Relationships: [Rel<"course_bans_course_id_fkey","course_id","courses">, Rel<"course_bans_user_id_fkey","user_id","profiles">,Rel<"course_bans_banned_by_fkey","banned_by","profiles">];
+      };
+      material_upload_reservations: {
+        Row: { id: string; user_id: string; course_id: string; created_at: string };
+        Insert: { user_id: string; course_id: string };
+        Update: Record<string, never>;
+        Relationships: [Rel<"material_upload_reservations_user_id_fkey","user_id","profiles">, Rel<"material_upload_reservations_course_id_fkey","course_id","courses">];
+      };
+      group_reminder_deliveries: {
+        Row: { group_id: string; user_id: string; meeting_starts_at: string; window_label: "24h" | "1h"; created_at: string };
+        Insert: { group_id: string; user_id: string; meeting_starts_at: string; window_label: "24h" | "1h" };
+        Update: Record<string,never>;
+        Relationships: [Rel<"group_reminder_deliveries_group_id_fkey","group_id","study_groups">, Rel<"group_reminder_deliveries_user_id_fkey","user_id","profiles">];
+      };
+      group_rsvps: {
+        Row: { group_id: string; user_id: string; status: "going" | "maybe" | "not_going"; updated_at: string };
+        Insert: { group_id: string; user_id: string; status: "going" | "maybe" | "not_going"; updated_at?: string };
+        Update: { status?: "going" | "maybe" | "not_going"; updated_at?: string };
+        Relationships: [Rel<"group_rsvps_group_id_fkey","group_id","study_groups">, Rel<"group_rsvps_user_id_fkey","user_id","profiles">];
+      };
       profiles: {
         Row: {
           id: string;
@@ -189,6 +225,8 @@ export type Database = {
           name: string;
           description: string;
           meeting_time: string;
+          meeting_starts_at: string | null;
+          meeting_ends_at: string | null;
           location: string;
           capacity: number;
           members_count: number;
@@ -201,11 +239,13 @@ export type Database = {
           name: string;
           description?: string;
           meeting_time?: string;
+          meeting_starts_at?: string | null;
+          meeting_ends_at?: string | null;
           location?: string;
           capacity?: number;
           created_by: string;
         };
-        Update: { name?: string; description?: string; meeting_time?: string; location?: string; capacity?: number };
+        Update: { name?: string; description?: string; meeting_time?: string; meeting_starts_at?: string | null; meeting_ends_at?: string | null; location?: string; capacity?: number };
         Relationships: [
           Rel<"study_groups_course_id_fkey", "course_id", "courses">,
           Rel<"study_groups_created_by_fkey", "created_by", "profiles">,
@@ -292,6 +332,10 @@ export type Database = {
     };
     Views: { [_ in never]: never };
     Functions: {
+      enqueue_group_reminders: { Args: Record<string,never>; Returns: number };
+      rotate_course_invite: { Args: { p_course: string }; Returns: string };
+      moderate_course_member: { Args: { p_course: string; p_member: string; p_actor: string }; Returns: boolean };
+      reserve_material_upload: { Args: { p_course: string }; Returns: boolean };
       search_courses: {
         Args: { p_query: string; p_limit?: number };
         Returns: { id: string; code: string; title: string; term: string; instructor: string; school: string; members_count: number }[];

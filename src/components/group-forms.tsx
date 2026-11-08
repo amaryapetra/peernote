@@ -1,12 +1,13 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { createGroup, postToGroup } from "@/app/actions/groups";
 import { FormMessage, SubmitButton, echoed } from "./form";
 import { Field, inputClass } from "./ui";
 
 export function CreateGroupForm({ courseId }: { courseId: string }) {
   const [state, action] = useActionState(createGroup, undefined);
+  const [startsAt, setStartsAt] = useState("");
   return (
     <form action={action} className="space-y-4" noValidate>
       <FormMessage state={state} />
@@ -17,9 +18,18 @@ export function CreateGroupForm({ courseId }: { courseId: string }) {
       <Field label="What's the plan?" htmlFor="description" hint="Optional">
         <textarea id="description" name="description" rows={2} maxLength={600} defaultValue={echoed(state, "description")} className={inputClass} placeholder="Working through practice problems from chapters 5 and 6." />
       </Field>
+      <input type="hidden" name="starts_at_iso" value={startsAt} />
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="When" htmlFor="meeting_time" hint="Optional">
-          <input id="meeting_time" name="meeting_time" maxLength={120} defaultValue={echoed(state, "meeting_time")} className={inputClass} placeholder="Thursdays 7pm" />
+        <Field label="Meeting date and time" htmlFor="meeting-start" hint="Uses your device's local timezone. Optional.">
+          <input id="meeting-start" type="datetime-local" className={inputClass} onChange={(e) => {
+            const value = e.target.value;
+            setStartsAt(value ? new Date(value).toISOString() : "");
+          }} />
+        </Field>
+        <Field label="Duration" htmlFor="duration">
+          <select id="duration" name="duration_minutes" defaultValue="60" className={inputClass}>
+            <option value="30">30 minutes</option><option value="60">1 hour</option><option value="90">90 minutes</option><option value="120">2 hours</option><option value="180">3 hours</option>
+          </select>
         </Field>
         <Field label="Where" htmlFor="location" hint="Optional">
           <input id="location" name="location" maxLength={120} defaultValue={echoed(state, "location")} className={inputClass} placeholder="Howard-Tilton, 3rd floor" />

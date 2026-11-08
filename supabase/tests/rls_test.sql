@@ -211,4 +211,59 @@ insert into auth.users (id,email) values ('a0000000-0000-0000-0000-000000000004'
 select pg_temp.check((select count(*) from auth.users where id='a0000000-0000-0000-0000-000000000004') = 1, 'allow Tulane signup');
 select pg_temp.check((select count(*) from auth.users where email='a@tulane.edu') = 1, 'existing accounts preserved');
 
+
+-- New pilot safety features.
+select pg_temp.check(not has_table_privilege('anon','public.notifications','SELECT'), 'anonymous cannot see notifications');
+select pg_temp.check(not has_table_privilege('authenticated','public.course_bans','SELECT'), 'ban list is private');
+select pg_temp.check(not has_function_privilege('authenticated','public.moderate_course_member(uuid,uuid,uuid)','EXECUTE'), 'client cannot call moderation privilege');
+-- Publish a fresh note after C has joined, to test the notification trigger.
+set role service_role;
+insert into notes (course_id, author_id, title, lecture_date, content)
+values ('10000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-00000000000a',
+ 'Review session notes','2026-10-03','Here are some helpful tips for the upcoming lecture in our course.');
+reset role;
+select pg_temp.act('00000000-0000-0000-0000-00000000000c');
+select pg_temp.expect_fail($q$update notifications set user_id='00000000-0000-0000-0000-00000000000a'$q$, 'notifications cannot be reassigned');
+select pg_temp.check((select count(*) from notifications where user_id=auth.uid())>=1, 'member receives note notification');
+select pg_temp.check(public.reserve_material_upload('10000000-0000-0000-0000-000000000001'), 'upload reservation allowed for member');
+select pg_temp.expect_fail($q$select public.rotate_course_invite('10000000-0000-0000-0000-000000000001')$q$, 'non-owner cannot rotate code'); 
+reset role;
+
+select pg_temp.act('00000000-0000-0000-0000-00000000000a');
+select pg_temp.check(length(public.rotate_course_invite('10000000-0000-0000-0000-000000000001'))=12, 'creator rotates invite');
+reset role;
+-- After B left the course, creator bans the former member and the ban
+-- must block rejoining, even with a freshly rotated invite code.
+set role service_role;
+select pg_temp.check(public.moderate_course_member('10000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-00000000000b','00000000-0000-0000-0000-00000000000a'), 'creator bans former classmate');
+reset role;
+set role service_role;
+update courses set join_code='ABCDEF123456' where id='10000000-0000-0000-0000-000000000001';
+reset role;
+select pg_temp.act('00000000-0000-0000-0000-00000000000b');
+select pg_temp.expect_fail($q$select public.join_course_by_code('ABCDEF123456')$q$, 'banned user denied invite'); 
+reset role;
+select pg_temp.check(not has_function_privilege('authenticated','public.enqueue_group_reminders()','EXECUTE'), 'client cannot send reminders for others');
+-- An actual group RSVP triggers at most one reminder per window.
+set role service_role;
+update public.study_groups set meeting_starts_at=now()+interval '60 minutes',
+ meeting_ends_at=now()+interval '120 minutes';
+reset role;
+select pg_temp.act('00000000-0000-0000-0000-00000000000a');
+insert into group_rsvps(group_id,user_id,status)
+select g.id,auth.uid(),'going' from study_groups g limit 1;
+select pg_temp.check((select count(*) from group_rsvps where user_id=auth.uid())=1,'organizer can RSVP');
+reset role;
+select pg_temp.act('00000000-0000-0000-0000-00000000000c');
+select pg_temp.expect_fail($q$insert into group_rsvps(group_id,user_id,status)
+select id,auth.uid(),'going' from study_groups limit 1$q$, 'non-group member cannot RSVP');
+reset role;
+set role service_role;
+select pg_temp.check(public.enqueue_group_reminders()=1,'reminder generated once for an RSVP');
+select pg_temp.check(public.enqueue_group_reminders()=0,'reminder deduplicated on subsequent runs');
+reset role;
+select pg_temp.act('00000000-0000-0000-0000-00000000000a');
+select pg_temp.check((select count(*) from notifications where kind='meeting_reminder')=1,'upcoming meeting delivered to attendee inbox');
+reset role;
 \echo ALL_RLS_TESTS_PASSED
+

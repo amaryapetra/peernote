@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Academic integrity",
   description:
-    "What you can and can't share on PeerNote, and how every upload is screened so PeerNote never works as a test bank.",
+    "What you can and can't share on PeerNote, and how our checks discourage sharing exams and answer keys.",
   alternates: { canonical: "/integrity" },
 };
 

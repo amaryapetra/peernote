@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { deleteNote, toggleHelpful } from "@/app/actions/notes";
 import { GapCheckForm } from "@/components/ai-forms";
 import { DraftCleanup } from "@/components/draft-cleanup";
+import { ReportContentForm } from "@/components/report-content-form";
 import { GapResultView } from "@/components/ai-results";
 import { SubmitButton } from "@/components/form";
 import { Markdown } from "@/components/markdown";
@@ -94,6 +95,7 @@ export default async function NotePage({ params, searchParams }: PageProps<"/not
                 <span aria-hidden>★</span> {reaction ? "Marked helpful" : "Helpful"} · {note.helpful_count}
               </SubmitButton>
             </form>
+            {!isAuthor && <ReportContentForm courseId={note.course_id} targetId={note.id} targetType="note" />}
             {isAuthor && (
               <>
                 <ButtonLink href={`/notes/${note.id}/edit`} variant="secondary" size="sm">

@@ -28,6 +28,7 @@ export default async function CoursesPage({ searchParams }: PageProps<"/courses"
       <PageHeader title="Courses" description="Join the classes you're taking to see notes, classmates, and study groups." />
 
       {params.left === "1" && <Alert tone="success">You left the course.</Alert>}
+      {params.invite_invalid === "1" && <Alert tone="error">This invitation is invalid or you no longer have access to the course.</Alert>}
 
       <section aria-labelledby="find-heading" className="space-y-4">
         <h2 id="find-heading" className="font-display text-xl font-semibold">Find a course</h2>

@@ -1,23 +1,9 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-import { VideoStudyRoom } from "@/components/video-study-room";
+import Link from "next/link";
 import { getCourse } from "@/lib/data";
-
-export const metadata: Metadata = { title: "Video study room" };
-
-export default async function VideoStudyRoomPage({ params }: PageProps<"/courses/[courseId]/video">) {
-  const { courseId } = await params;
-  const { course, enrolled, supabase } = await getCourse(courseId);
-  if (!enrolled) notFound();
-
-  const { data: room, error } = await supabase
-    .from("course_video_rooms")
-    .select("room_id")
-    .eq("course_id", course.id)
-    .single();
-  if (error || !room) {
-    return <p role="alert" className="text-sm text-muted">The video room is not ready. Apply the video room Supabase migration and refresh this page.</p>;
-  }
-
-  return <VideoStudyRoom courseCode={course.code} roomName={`PeerNoteStudy-${room.room_id.replaceAll("-", "")}`} />;
+import { Card } from "@/components/ui";
+export const metadata: Metadata = { title: "Video study rooms" };
+export default async function VideoStudyRoomPage({params}: PageProps<"/courses/[courseId]/video">) {
+ const {courseId}=await params;const {course}=await getCourse(courseId);
+ return <Card className="mx-auto max-w-2xl"><h2 className="font-display text-2xl font-semibold">Private video rooms are being secured</h2><p className="mt-3 text-muted">The previous external Jitsi link did not enforce PeerNote membership. Calls are paused until a provider with authenticated access is configured.</p><Link className="mt-4 inline-block font-medium text-brand hover:underline" href={`/courses/${course.id}/groups`}>Organize a study group instead</Link></Card>;
 }
