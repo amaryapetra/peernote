@@ -1,11 +1,18 @@
 import Image from "next/image";
 
-/** Cropped from a real PeerNote course screenshot with account details excluded. */
+/** A crisp, responsive reconstruction of the Courses interface.
+ *  Rendering native text and borders avoids blurring a small raster screenshot.
+ *  This is a UI preview rather than a claim that example records are live data.
+ */
 export function HeroPreview() {
   return (
-    <figure className="relative mx-auto w-full max-w-[610px]">
+    <div
+      className="relative mx-auto w-full max-w-[610px]"
+      role="img"
+      aria-label="Preview of PeerNote Courses with class search, a semester folder, and a course card"
+    >
       <div className="absolute -inset-4 rotate-[-3deg] rounded-[2rem] border border-line bg-surface-2/90" aria-hidden="true" />
-      <div className="relative overflow-hidden rounded-2xl border border-line bg-surface shadow-2xl shadow-black/10">
+      <div className="relative overflow-hidden rounded-2xl border border-line bg-paper shadow-2xl shadow-black/10">
         <div className="flex h-10 items-center gap-2 border-b border-line bg-surface px-4">
           <div className="flex gap-1.5" aria-hidden="true">
             <span className="size-2.5 rounded-full bg-[#e3a59c]" />
@@ -13,28 +20,54 @@ export function HeroPreview() {
             <span className="size-2.5 rounded-full bg-[#a2ccb5]" />
           </div>
           <span className="ml-3 text-xs font-medium text-muted">PeerNote / Courses</span>
-          <span className="ml-auto rounded-full bg-brand-soft px-2.5 py-1 text-[10px] font-semibold text-brand-strong">
-            Actual app
-          </span>
         </div>
-        <Image
-          src="/images/peernote-courses.webp"
-          alt="PeerNote Courses page with class search and an enrolled course card"
-          width={530}
-          height={300}
-          priority
-          sizes="(max-width: 1024px) 90vw, 550px"
-          className="block h-auto w-full"
-        />
+        <div className="space-y-5 px-5 pb-6 pt-5 sm:px-7 sm:pb-8 sm:pt-7">
+          <div>
+            <h2 className="font-display text-3xl font-semibold leading-tight text-ink">Courses</h2>
+            <p className="mt-1 text-xs text-muted sm:text-sm">Find your classes. Study better together.</p>
+          </div>
+          <div>
+            <p className="mb-2 font-display text-base font-semibold text-ink sm:text-lg">Find a course</p>
+            <div className="flex min-w-0 gap-2">
+              <span className="flex h-10 min-w-0 flex-1 items-center overflow-hidden rounded-md border border-line bg-surface px-3 text-xs text-muted sm:text-sm">
+                Search by code, name, or professor
+              </span>
+              <span className="flex h-10 shrink-0 items-center rounded-md bg-brand px-3 text-xs font-medium text-on-brand">Search</span>
+            </div>
+          </div>
+          <div>
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <h3 className="font-display text-base font-semibold text-ink sm:text-lg">Your courses</h3>
+              <span className="text-xs text-muted">1 course</span>
+            </div>
+            <div className="overflow-hidden rounded-lg border border-line bg-surface">
+              <div className="flex items-center gap-2 border-b border-line px-3 py-3 sm:px-4">
+                <svg viewBox="0 0 24 24" aria-hidden="true" className="size-5 shrink-0 text-brand" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H10l2.3 2.5h6.2A2.5 2.5 0 0 1 21 10v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7.5Z" />
+                </svg>
+                <span className="flex-1 text-sm font-semibold text-ink">Fall 2026</span>
+                <span className="text-xs text-muted">1 course</span>
+                <svg viewBox="0 0 24 24" aria-hidden="true" className="size-4 text-muted" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </div>
+              <div className="p-3 sm:p-4">
+                <div className="w-full max-w-[255px] rounded-lg border border-line bg-paper p-3.5 sm:p-4">
+                  <p className="text-xs font-semibold text-brand">DATA 2150</p>
+                  <p className="mt-1 font-display text-base font-semibold text-ink sm:text-lg">AI Tools</p>
+                  <p className="mt-1 text-xs text-muted">Fall 2026</p>
+                  <p className="mt-3 text-xs text-muted">Notes · Class materials · Study groups</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-      <figcaption className="relative mt-4 text-center text-xs text-muted">
-        Screenshot from PeerNote · earlier version of the Courses page
-      </figcaption>
-    </figure>
+    </div>
   );
 }
 
-/** A licensed photograph of students studying; not presented as Tulane users. */
+/** Pexels photography by Zen Chung (photo 5537513). For visual context only. */
 export function StudyPhoto() {
   return (
     <figure className="overflow-hidden rounded-2xl border border-line bg-surface shadow-sm">
@@ -50,12 +83,6 @@ export function StudyPhoto() {
           loading="lazy"
         />
       </div>
-      <figcaption className="px-4 py-2 text-xs text-muted">
-        Illustrative photography by{" "}
-        <a href="https://www.pexels.com/photo/multiracial-students-with-laptop-doing-homework-at-table-5537513/" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-brand">
-          Zen Chung / Pexels
-        </a>. Not PeerNote members or Tulane students.
-      </figcaption>
     </figure>
   );
 }
