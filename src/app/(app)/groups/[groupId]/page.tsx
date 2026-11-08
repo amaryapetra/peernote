@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { deleteGroup, joinGroup, leaveGroup } from "@/app/actions/groups";
+import { deleteGroup, joinGroup, leaveGroup, rsvpToGroup, rescheduleGroup } from "@/app/actions/groups";
 import { SubmitButton } from "@/components/form";
 import { GroupPostForm } from "@/components/group-forms";
+import { MeetingEditor } from "@/components/meeting-editor";
 import { ReportContentForm } from "@/components/report-content-form";
 import { Alert, Avatar, Card, EmptyState, buttonClass } from "@/components/ui";
 import { requireUser } from "@/lib/auth";
@@ -27,7 +28,7 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/gr
     .maybeSingle();
   if (!group || !group.course) notFound();
 
-  const [{ data: members }, { data: posts }] = await Promise.all([
+  const [{ data: members }, { data: posts }, {data: rsvps}] = await Promise.all([
     supabase
       .from("group_members")
       .select("user_id, joined_at, profile:profiles!group_members_user_id_fkey(id, full_name, major)")
@@ -40,10 +41,17 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/gr
       .eq("group_id", group.id)
       .order("created_at", { ascending: false })
       .limit(50),
+    supabase.from("group_rsvps").select("user_id,status").eq("group_id",group.id),
   ]);
   const isMember = (members ?? []).some((m) => m.user_id === user.id);
   const isCreator = group.created_by === user.id;
   const full = group.members_count >= group.capacity;
+  const myRsvp = (rsvps??[]).find(r=>r.user_id===user.id)?.status;
+  const counts = { going: (rsvps??[]).filter(r=>r.status==="going").length,
+    maybe: (rsvps??[]).filter(r=>r.status==="maybe").length };
+  const meetingLabel = group.meeting_starts_at
+    ? new Intl.DateTimeFormat("en-US",{dateStyle:"medium",timeStyle:"short",timeZone:"America/Chicago"}).format(new Date(group.meeting_starts_at)) + " CT"
+    : group.meeting_time || "TBD";
 
   return (
     <div className="space-y-8">
@@ -63,7 +71,7 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/gr
           <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">{group.name}</h1>
           {group.description && <p className="mt-2 max-w-2xl text-muted">{group.description}</p>}
           <dl className="mt-4 flex flex-wrap gap-x-6 gap-y-1 text-sm">
-            <div className="flex gap-2"><dt className="text-muted">When</dt><dd className="font-medium">{group.meeting_time || "TBD"}</dd></div>
+            <div className="flex gap-2"><dt className="text-muted">When</dt><dd className="font-medium">{meetingLabel}</dd></div>
             <div className="flex gap-2"><dt className="text-muted">Where</dt><dd className="font-medium">{group.location || "TBD"}</dd></div>
             <div className="flex gap-2"><dt className="text-muted">Size</dt><dd className="font-medium">{group.members_count}/{group.capacity}</dd></div>
           </dl>
@@ -108,6 +116,23 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/gr
         </div>
       </header>
 
+      {group.meeting_starts_at && isMember && (
+        <Card><h2 className="font-display text-lg font-semibold">Meeting RSVP</h2>
+        <p className="my-2 text-sm text-muted">{counts.going} going · {counts.maybe} maybe</p>
+        <div className="flex flex-wrap gap-2">
+          {(["going","maybe","not_going"] as const).map(status=>(
+            <form action={rsvpToGroup} key={status}><input type="hidden" name="groupId" value={group.id}/>
+              <input type="hidden" name="status" value={status}/>
+              <SubmitButton variant={myRsvp===status?"primary":"secondary"} size="sm">
+                {status==="not_going"?"Can't attend":status==="maybe"?"Maybe":"Going"}
+              </SubmitButton>
+            </form>
+          ))}
+          <Link href={`/api/groups/${group.id}/calendar`} className={buttonClass("secondary","sm")}>Add to calendar (.ics)</Link>
+        </div>
+        {isCreator && <MeetingEditor groupId={group.id}/>}
+        </Card>
+      )}
       <div className="grid gap-8 lg:grid-cols-[1fr_18rem]">
         <section aria-labelledby="board-heading">
           <h2 id="board-heading" className="mb-4 font-display text-xl font-semibold">Group board</h2>
