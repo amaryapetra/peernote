@@ -94,11 +94,14 @@ export async function rsvpToGroup(formData: FormData) {
   const status = String(formData.get("status") ?? "");
   if (!/^[a-f0-9-]{36}$/i.test(groupId) || !["going","maybe","not_going"].includes(status)) return;
   const supabase = await createClient();
-  const { error } = await supabase.from("group_rsvps").upsert({
-    group_id: groupId, user_id: user.id, status: status as "going"|"maybe"|"not_going",
-    updated_at: new Date().toISOString(),
-  }, { onConflict: "group_id,user_id" });
-  if (error) throw new Error("Join this group before responding.");
+  const {data: prior} = await supabase.from("group_rsvps").select("group_id")
+    .eq("group_id", groupId).eq("user_id", user.id).maybeSingle();
+  const nextStatus = status as "going" | "maybe" | "not_going";
+  const result = prior
+    ? await supabase.from("group_rsvps").update({status:nextStatus,updated_at:new Date().toISOString()})
+        .eq("group_id",groupId).eq("user_id",user.id)
+    : await supabase.from("group_rsvps").insert({group_id:groupId,user_id:user.id,status:nextStatus});
+  if(result.error) throw new Error("Join this group before responding.");
   refresh();
 }
 

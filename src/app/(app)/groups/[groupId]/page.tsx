@@ -148,7 +148,7 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/gr
               ) : (
                 <ol className="space-y-3">
                   {posts.map((p) => (
-                    <li key={p.id} className="flex gap-3 rounded-xl border border-line bg-surface p-4">
+                    <li key={p.id} id={`post-${p.id}`} className="scroll-mt-24 flex gap-3 rounded-xl border border-line bg-surface p-4">
                       <Avatar name={p.author?.full_name ?? "?"} id={p.author_id} size="sm" />
                       <div className="min-w-0">
                         <p className="text-sm">

@@ -62,6 +62,7 @@ export default async function CourseNotesPage({ params, searchParams }: PageProp
       )}
       {sp.joined === "1" && <Alert tone="success">You joined {course.code}. Welcome to the class!</Alert>}
       {sp.rotated === "1" && <Alert tone="success">Invite regenerated. Old codes and links no longer work.</Alert>}
+      {sp.creator_cannot_leave === "1" && <Alert tone="error">Course creators cannot leave without transferring ownership.</Alert>}
       <p className="rounded-lg border border-line bg-surface px-4 py-3 text-sm text-muted">
         Share this invite code with trusted classmates: <strong className="font-mono tracking-wide text-ink">{course.join_code}</strong>.
         Anyone with the code and a PeerNote account can join. <CopyInviteLink code={course.join_code} />
@@ -79,6 +80,7 @@ export default async function CourseNotesPage({ params, searchParams }: PageProp
             Search notes in this course
           </label>
           <input id="note-search" name="q" defaultValue={q} className={inputClass} placeholder="Search notes, like “eigenvalues”" />
+          <button type="submit" className="rounded-lg bg-brand px-3 text-sm font-medium text-on-brand">Search</button>
           {q && (
             <Link href={`/courses/${course.id}`} className="flex items-center px-2 text-sm text-muted hover:text-ink">
               Clear

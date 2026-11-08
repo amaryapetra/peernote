@@ -65,6 +65,8 @@ export async function leaveCourse(formData: FormData) {
   const user = await requireUser();
   const courseId = String(formData.get("courseId") ?? "");
   const supabase = await createClient();
+  const {data:course}=await supabase.from("courses").select("created_by").eq("id",courseId).maybeSingle();
+  if(course?.created_by===user.id) redirect(`/courses/${courseId}?creator_cannot_leave=1`);
   await supabase.from("enrollments").delete().eq("user_id", user.id).eq("course_id", courseId);
   redirect("/courses?left=1");
 }

@@ -36,12 +36,12 @@ export default async function CourseLayout({ children, params }: LayoutProps<"/c
                 </summary>
                 <div className="absolute right-0 z-10 mt-1 w-44 rounded-lg border border-line bg-surface p-2 shadow-lg">
                   {course.created_by === user.id && <Link href={`/courses/${course.id}/moderation`} className="mb-2 block p-2 text-sm font-medium hover:bg-surface-2">Course moderation</Link>}
-                  <form action={leaveCourse}>
+                  {course.created_by !== user.id && <form action={leaveCourse}>
                     <input type="hidden" name="courseId" value={course.id} />
                     <SubmitButton variant="danger" size="sm" className="w-full" pendingText="Leaving…">
                       Leave course
                     </SubmitButton>
-                  </form>
+                  </form>}
                 </div>
               </details>
             </div>
