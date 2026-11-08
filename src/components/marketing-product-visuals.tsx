@@ -20,8 +20,8 @@ export function HeroPreview() {
         <Image
           src="/images/peernote-courses.webp"
           alt="PeerNote Courses page with class search and an enrolled course card"
-          width={600}
-          height={338}
+          width={530}
+          height={300}
           priority
           sizes="(max-width: 1024px) 90vw, 550px"
           className="block h-auto w-full"
