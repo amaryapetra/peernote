@@ -96,9 +96,9 @@ describe("note import", () => {
     expect(text(prepareNoteImport(html, "page.html"))).toBe("## Topic\n\n- One & two");
   });
 
-  it("sends photos and PDFs to AI transcription", () => {
-    expect(prepareNoteImport(Buffer.from("%PDF-1.7 ..."), "scan.pdf")).toEqual({ kind: "ai", mediaType: "application/pdf" });
-    expect(prepareNoteImport(Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0]), "IMG.jpg")).toEqual({ kind: "ai", mediaType: "image/jpeg" });
+  it("recognizes photos and PDFs", () => {
+    expect(prepareNoteImport(Buffer.from("%PDF-1.7 ..."), "scan.pdf")).toEqual({ kind: "media", mediaType: "application/pdf" });
+    expect(prepareNoteImport(Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0]), "IMG.jpg")).toEqual({ kind: "media", mediaType: "image/jpeg" });
   });
 
   it("explains files it can't read", () => {

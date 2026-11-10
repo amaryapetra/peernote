@@ -60,10 +60,6 @@ export function UploadMaterialForm({ courseId }: { courseId: string }) {
       <Field label="File" htmlFor="upload-file" hint="PDF, Word, PowerPoint, Excel, OpenDocument, text or common image (4 MB maximum; 12 uploads per day). Archives and programs are blocked.">
         <input id="upload-file" name="file" type="file" accept=".pdf,.docx,.pptx,.xlsx,.odt,.ods,.odp,.txt,.md,.rtf,.csv,.tsv,.jpg,.jpeg,.png,.webp,.gif" required className={inputClass} />
       </Field>
-      <label className="flex items-start gap-2 text-sm text-muted">
-        <input type="checkbox" name="aiAllowed" className="mt-1 accent-brand" />
-        <span>Allow PeerNote AI to use this file&apos;s text for catch-up guides, gap checks, and questions. Text in documents, slides, and spreadsheets is read on our server; PDFs and images are read with Anthropic&apos;s AI.</span>
-      </label>
       <SharingPermission />
       <button type="submit" disabled={saving} className={buttonClass()}>
         {saving ? "Uploading…" : "Upload file"}

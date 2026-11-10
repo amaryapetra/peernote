@@ -229,8 +229,17 @@ select pg_temp.check(public.reserve_material_upload('10000000-0000-0000-0000-000
 select pg_temp.expect_fail($q$select public.rotate_course_invite('10000000-0000-0000-0000-000000000001')$q$, 'non-owner cannot rotate code'); 
 reset role;
 
+select pg_temp.act('00000000-0000-0000-0000-00000000000c');
+select pg_temp.check((select count(*) from course_video_rooms where course_id='10000000-0000-0000-0000-000000000001')=1, 'member sees course video room');
+reset role;
+select pg_temp.act('00000000-0000-0000-0000-00000000000b');
+select pg_temp.check((select count(*) from course_video_rooms)=0, 'non-member cannot see video rooms');
+reset role;
+create temp table old_room as select room_id from course_video_rooms where course_id='10000000-0000-0000-0000-000000000001';
+grant select on old_room to authenticated;
 select pg_temp.act('00000000-0000-0000-0000-00000000000a');
 select pg_temp.check(length(public.rotate_course_invite('10000000-0000-0000-0000-000000000001'))=12, 'creator rotates invite');
+select pg_temp.check((select room_id from course_video_rooms where course_id='10000000-0000-0000-0000-000000000001') <> (select room_id from old_room), 'rotating the invite also gives a new video room');
 reset role;
 -- After B left the course, creator bans the former member and the ban
 -- must block rejoining, even with a freshly rotated invite code.

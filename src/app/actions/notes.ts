@@ -7,9 +7,6 @@ import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { screenNoteHeuristically } from "@/lib/integrity";
-import { isAiConfigured } from "@/lib/ai/client";
-import { screenNoteWithAi } from "@/lib/ai/integrity";
-import { checkAndRecordUsage } from "@/lib/ai/usage";
 import { todayISO } from "@/lib/format";
 
 export type NoteFormState =
@@ -57,11 +54,9 @@ export async function saveNote(_prev: NoteFormState, formData: FormData): Promis
   }
 
   const supabase = await createClient();
-  const [{ data: enrollment }, { data: course }] = await Promise.all([
-    supabase.from("enrollments").select("course_id").eq("course_id", courseId).eq("user_id", user.id).maybeSingle(),
-    supabase.from("courses").select("code, title").eq("id", courseId).maybeSingle(),
-  ]);
-  if (!enrollment || !course) return { error: "Join this course before sharing notes in it." };
+  const { data: enrollment } = await supabase
+    .from("enrollments").select("course_id").eq("course_id", courseId).eq("user_id", user.id).maybeSingle();
+  if (!enrollment) return { error: "Join this course before sharing notes in it." };
 
   if (noteId) {
     const { data: existing } = await supabase.from("notes").select("author_id, course_id").eq("id", noteId).maybeSingle();
@@ -70,27 +65,10 @@ export async function saveNote(_prev: NoteFormState, formData: FormData): Promis
     }
   }
 
-  // Academic-integrity screening.
+  // Academic-integrity screening: a keyword and pattern check for exam material.
   const heuristic = screenNoteHeuristically(parsed.data);
-  let integrityNote = "";
-  if (isAiConfigured()) {
-    const limited = await checkAndRecordUsage(supabase, "integrity");
-    if (limited) return { error: limited };
-    try {
-      const verdict = await screenNoteWithAi(
-        { ...parsed.data, courseTitle: `${course.code} ${course.title}` },
-        heuristic,
-      );
-      if (!verdict.allowed) return { integrity: { reason: verdict.reason } };
-      integrityNote = `ai:${verdict.category}`;
-    } catch (error) {
-      console.error("AI integrity check failed; upload not saved", error);
-      return { error: "We couldn't finish the integrity check. Your notes weren't shared; please try again." };
-    }
-  } else {
-    if (heuristic.level === "block") return { integrity: { reason: blockReason(heuristic.reasons) } };
-    integrityNote = `scan:${heuristic.level}`;
-  }
+  if (heuristic.level === "block") return { integrity: { reason: blockReason(heuristic.reasons) } };
+  const integrityNote = `scan:${heuristic.level}`;
 
   const admin = createAdminClient();
   if (noteId) {

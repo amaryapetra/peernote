@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from "vitest";
 import { deflateRawSync } from "node:zlib";
 
 vi.mock("server-only", () => ({}));
-vi.mock("@/lib/ai/client", () => ({ runText: vi.fn() }));
 const { extractPptxText } = await import("@/lib/material-text");
 
 function smallPptx(slides: string[]): Buffer {

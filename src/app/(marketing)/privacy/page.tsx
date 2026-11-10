@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Privacy",
-  description: "What PeerNote stores, who can see it, and how AI features use your notes.",
+  description: "What PeerNote stores, who can see it, and how video calls work.",
   alternates: { canonical: "/privacy" },
 };
 
@@ -18,7 +18,7 @@ export default function PrivacyPage() {
         <p className="text-muted">
           Your name, email, and the profile details you choose to add (major, graduation year, study style, and when
           you&apos;re free). The courses you join, the notes and authorized class materials you share (including file storage), study groups,
-          connection requests, content reports you submit, in-app notifications, and the AI results you generate so you can come back to them later.
+          connection requests, content reports you submit, and in-app notifications.
         </p>
       </section>
       <section className="space-y-3">
@@ -30,15 +30,16 @@ export default function PrivacyPage() {
           <li>Notifications about course activity and study groups are visible only to the recipient.</li>
           <li>Your profile is visible to classmates in your courses.</li>
           <li>Your contact info is visible only to classmates whose connection request you&apos;ve accepted, or who accepted yours.</li>
-          <li>Your AI results (gap checks, catch-up guides, questions) are visible only to you.</li>
         </ul>
         <p className="text-muted">These rules are enforced by the database itself, not just by the website.</p>
       </section>
       <section className="space-y-3">
-        <h2 className="font-display text-2xl font-semibold">AI processing</h2>
+        <h2 className="font-display text-2xl font-semibold">Video calls</h2>
         <p className="text-muted">
-          When you use an AI feature, the relevant notes and any uploaded slides explicitly opted into AI analysis are sent to Anthropic&apos;s Claude API to generate the result. Links to Canvas are not fetched for AI analysis.
-          Anthropic does not use API data to train its models by default.
+          Course video calls run on Jitsi Meet, a third-party service, and open on Jitsi&apos;s site. PeerNote shows each
+          course&apos;s room link only to students in that course, but anyone who has the link can join, so don&apos;t share
+          it outside your class. PeerNote doesn&apos;t record calls or store their audio or video. Jitsi&apos;s own privacy
+          policy covers what happens during a call.
         </p>
       </section>
       <section className="space-y-3">

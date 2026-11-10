@@ -11,52 +11,16 @@ type Initial = { title: string; lecture_date: string; topic: string; content: st
 
 // Matches the server's limit (Vercel caps request bodies at about 4.5 MB).
 const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
-const AI_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-
-/**
- * The AI only reads JPG, PNG, WebP, and GIF under 4 MB. For other photos (like
- * iPhone HEIC, BMP, TIFF) or big ones, let the browser decode the image and
- * re-save it as a smaller JPG. Returns null when no conversion is needed or
- * the browser can't decode it (the server then explains what to do).
- */
-async function photoAsJpeg(file: File): Promise<File | null> {
-  const looksLikePhoto = file.type.startsWith("image/") || /\.(heic|heif|avif|bmp|tiff?)$/i.test(file.name);
-  if (!looksLikePhoto || file.type === "image/svg+xml") return null;
-  if (AI_PHOTO_TYPES.includes(file.type) && file.size <= MAX_UPLOAD_BYTES) return null;
-  const url = URL.createObjectURL(file);
-  try {
-    const img = new Image();
-    img.src = url;
-    await img.decode();
-    const scale = Math.min(1, 2400 / Math.max(img.naturalWidth, img.naturalHeight));
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
-    canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return null;
-    ctx.fillStyle = "#fff"; // transparent areas would otherwise turn black in a JPG
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.85));
-    return blob ? new File([blob], file.name.replace(/\.[^.]+$/, "") + ".jpg", { type: "image/jpeg" }) : null;
-  } catch {
-    return null;
-  } finally {
-    URL.revokeObjectURL(url);
-  }
-}
 
 export function NoteEditor({
   courseId,
   noteId,
   initial,
-  aiEnabled,
   cancelHref,
 }: {
   courseId: string;
   noteId?: string;
   initial: Initial;
-  aiEnabled: boolean;
   cancelHref: string;
 }) {
   const [state, action] = useActionState(saveNote, undefined);
@@ -110,16 +74,15 @@ export function NoteEditor({
     }
     setImporting(true);
     try {
-      // Everything else (Word, slides, spreadsheets, PDFs, photos, code...) is read on the server.
-      const file = (await photoAsJpeg(picked)) ?? picked;
-      if (file.size > MAX_UPLOAD_BYTES) throw new Error("That file is over 4 MB. Try a smaller file.");
+      // Word, slides, spreadsheets, and other formats are read on the server.
+      if (picked.size > MAX_UPLOAD_BYTES) throw new Error("That file is over 4 MB. Try a smaller file.");
       const body = new FormData();
-      body.append("file", file);
-      const res = await fetch("/api/transcribe", { method: "POST", body });
+      body.append("file", picked);
+      const res = await fetch("/api/import-notes", { method: "POST", body });
       const json = (await res.json().catch(() => ({}))) as { text?: string; error?: string };
       if (!res.ok || !json.text) throw new Error(json.error ?? "Couldn't read that file.");
       setValues((v) => ({ ...v, content: v.content ? `${v.content}\n\n${json.text}` : json.text! }));
-      setImportMessage({ tone: "info", text: `Imported ${picked.name}. Check it for mistakes before sharing.` });
+      setImportMessage({ tone: "info", text: `Imported ${picked.name}. Review it before sharing.` });
       setTab("write");
     } catch (error) {
       setImportMessage({ tone: "error", text: error instanceof Error ? error.message : "Couldn't read that file." });
@@ -164,7 +127,7 @@ export function NoteEditor({
           <input id="lecture_date" name="lecture_date" type="date" value={values.lecture_date} onChange={set("lecture_date")} required className={inputClass} />
         </Field>
       </div>
-      <Field label="Topic" htmlFor="topic" hint="Optional. Helps classmates and the AI find your notes." error={state?.fieldErrors?.topic}>
+      <Field label="Topic" htmlFor="topic" hint="Optional. Helps classmates find your notes." error={state?.fieldErrors?.topic}>
         <input id="topic" name="topic" value={values.topic} onChange={set("topic")} maxLength={140} className={inputClass} placeholder="Diagonalization" />
       </Field>
 
@@ -214,11 +177,7 @@ export function NoteEditor({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-sm">
             <p className="font-medium">Import notes</p>
-            <p className="text-muted">
-              {aiEnabled
-                ? "Upload any file: a Word doc, slides, a spreadsheet, a text file, or a photo or PDF of your notes for us to transcribe."
-                : "Upload a Word, slides, spreadsheet, or text file. (Photo and PDF transcription needs AI, which isn't set up here.)"}
-            </p>
+            <p className="text-muted">Upload a Word doc, slides, a spreadsheet, or a text file to start from its text.</p>
           </div>
           <div>
             <input
@@ -233,7 +192,7 @@ export function NoteEditor({
               }}
             />
             <button type="button" disabled={importing} onClick={() => fileInput.current?.click()} className={buttonClass("secondary", "sm")}>
-              {importing ? "Reading your notes…" : "Choose file"}
+              {importing ? "Reading your file…" : "Choose file"}
             </button>
           </div>
         </div>

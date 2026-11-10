@@ -20,7 +20,7 @@ const TEAM = [
 const STACK = [
   { name: "Next.js", detail: "React framework for the pages and server logic, written in TypeScript." },
   { name: "Supabase", detail: "Postgres database, user accounts, and row-level security that keeps each course's notes private to its students." },
-  { name: "Claude by Anthropic", detail: "The AI model behind note comparison, catch-up guides, answers, transcription, and integrity screening." },
+  { name: "Jitsi Meet", detail: "Free, open-source video calls, with a private room for each course." },
   { name: "Vercel", detail: "Hosting, deployed automatically from GitHub, served on our own domain." },
 ];
 

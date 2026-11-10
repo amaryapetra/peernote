@@ -32,7 +32,7 @@ export default function OpengraphImage() {
             &nbsp;again.
           </div>
           <div style={{ fontSize: 32, color: "#66625a", fontFamily: "Helvetica, Arial, sans-serif" }}>
-            Share notes · Fill the gaps with AI · Find study partners
+            Share notes · Study groups · Find study partners
           </div>
         </div>
       </div>

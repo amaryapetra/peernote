@@ -12,11 +12,9 @@ export function CourseTabs({ courseId }: { courseId: string }) {
   const tabs = [
     { href: base, label: "Notes" },
     { href: `${base}/materials`, label: "Class materials" },
-    { href: `${base}/catch-up`, label: "Catch up" },
-    { href: `${base}/ask`, label: "Ask the notes" },
     { href: `${base}/classmates`, label: "Classmates" },
     { href: `${base}/groups`, label: "Study groups" },
-    // External Jitsi URLs are not protected by course membership. Disabled until a private provider is integrated.
+    { href: `${base}/video`, label: "Video call" },
   ];
   return (
     <nav aria-label="Course sections" className="-mb-px flex gap-1 overflow-x-auto">

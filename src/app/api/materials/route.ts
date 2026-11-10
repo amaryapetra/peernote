@@ -3,15 +3,12 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isAiConfigured, friendlyAiError } from "@/lib/ai/client";
 import { validateClassMaterial, verifyExternalMalwareScan } from "@/lib/upload-security";
-import { extractMaterialTextForAi, MATERIAL_TEXT_LIMIT } from "@/lib/material-text";
+import { MATERIAL_TEXT_LIMIT } from "@/lib/material-text";
 import { INLINE_TYPES, fileExtension, isInlineType } from "@/lib/material-files";
 import { prepareNoteImport } from "@/lib/note-import";
 import { screenNoteHeuristically } from "@/lib/integrity";
-import { checkAndRecordUsage } from "@/lib/ai/usage";
 
-export const maxDuration = 60;
 const MAX_BYTES = 4 * 1024 * 1024;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -27,7 +24,6 @@ export async function POST(request: NextRequest) {
   const description = String(form.get("description") ?? "").trim();
   const date = String(form.get("lectureDate") ?? "");
   const file = form.get("file");
-  const wantsAi = form.get("aiAllowed") === "on";
   if (!UUID.test(courseId) || title.length < 2 || title.length > 140 ||
       description.length > 600 || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return fail("Enter a title and valid lecture date.", 400);
@@ -53,26 +49,13 @@ export async function POST(request: NextRequest) {
   const { data: reserved, error: quotaError } = await supabase.rpc("reserve_material_upload", { p_course: courseId });
   if (quotaError || !reserved) return fail(quotaError ? "Couldn't verify your upload allowance." : "You've uploaded 12 files in the last 24 hours. Try again later.", 429);
 
-  // Read the file's text for the preview and (if allowed) the AI study tools.
-  // Documents, slides, and spreadsheets are read locally; PDFs and photos need AI.
+  // Read the text of documents, slides, and spreadsheets for the preview.
   let prepared: ReturnType<typeof prepareNoteImport>;
   try { prepared = prepareNoteImport(bytes, file.name); }
   catch {
     return fail("Could not read this file. Try exporting to PDF or a common Office format.", 422);
   }
-  let text = prepared.kind === "text" ? prepared.text.slice(0, MATERIAL_TEXT_LIMIT) : "";
-  try {
-    if (prepared.kind === "ai" && wantsAi) {
-      if (!isAiConfigured()) return fail("AI reading isn't set up yet. Uncheck the AI box to upload this file.", 503);
-      const usageError = await checkAndRecordUsage(supabase, "transcribe");
-      if (usageError) return fail(usageError, 429);
-      text = await extractMaterialTextForAi(bytes, prepared.mediaType);
-      if (text === "NOT_LECTURE_MATERIAL") return fail("Assessments or answer keys can't be shared.", 422);
-    }
-  } catch (error) {
-    console.error("material text extraction failed", error);
-    return fail(friendlyAiError(error), 422);
-  }
+  const text = prepared.kind === "text" ? prepared.text.slice(0, MATERIAL_TEXT_LIMIT) : "";
   if (text && screenNoteHeuristically({ title, topic: "Class material", content: text }).level === "block") {
     return fail("This file appears to include assessment material and cannot be shared.", 422);
   }
@@ -81,7 +64,7 @@ export async function POST(request: NextRequest) {
   // else is stored as a generic download, so an uploaded web page or script can
   // never run in a classmate's browser.
   let fileType = fileExtension(file.name);
-  if (prepared.kind === "ai") {
+  if (prepared.kind === "media") {
     fileType = prepared.mediaType === "application/pdf" ? "pdf" : prepared.mediaType.slice("image/".length).replace("jpeg", "jpg");
   } else if (isInlineType(fileType)) {
     fileType = "file"; // named like a PDF or image, but it isn't one
@@ -103,7 +86,6 @@ export async function POST(request: NextRequest) {
     course_id: courseId, uploaded_by: user.id, title, description,
     lecture_date: date, source_type: "file", file_type: fileType,
     file_name: safeFileName, storage_path: path, extracted_text: text,
-    ai_allowed: wantsAi && Boolean(text),
   });
   if (saveError) {
     console.error("material metadata insert failed", saveError);

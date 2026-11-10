@@ -8,7 +8,7 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 const fraunces = Fraunces({ variable: "--font-fraunces", subsets: ["latin"], weight: ["600"] });
 
 const DESCRIPTION =
-  "PeerNote helps college students share class notes, catch up on missed lectures, and find classmates to study with. AI compares notes to fill the gaps.";
+  "PeerNote helps college students share class notes, catch up on missed lectures, and find classmates to study with in study groups and video calls.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     "study groups",
     "missed class notes",
     "college study app",
-    "AI study guide",
+    "study video call",
     "note sharing",
     "Tulane",
   ],
