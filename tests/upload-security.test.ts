@@ -20,9 +20,9 @@ describe("class material upload validation",()=>{
   expect(checkMaterialName("setup.exe")).not.toBeNull();
   expect(checkMaterialName("notes.zip")).not.toBeNull();
  });
- it("accepts files up to 25 MB",()=>{
+ it("accepts files up to the size limit",()=>{
   const big=new Uint8Array(MAX_MATERIAL_BYTES).fill(0x61);
   expect(validateClassMaterial("reading.txt",big)).toBeNull();
-  expect(validateClassMaterial("reading.txt",new Uint8Array(MAX_MATERIAL_BYTES+1).fill(0x61))).toMatch(/25 MB/);
+  expect(validateClassMaterial("reading.txt",new Uint8Array(MAX_MATERIAL_BYTES+1).fill(0x61))).toMatch(/50 MB/);
  });
 });
