@@ -15,7 +15,7 @@ export default async function DashboardPage() {
   // Fall back to the newest course if they left the one they last opened.
   const lastCourse = (profile?.last_course_id && courseById.get(profile.last_course_id)) || courses[0];
 
-  const [recentNotes, lastCourseNotes, requests, groups, insights, myNoteCount] = await Promise.all([
+  const [recentNotes, lastCourseNotes, requests, groups, myNoteCount] = await Promise.all([
     courseIds.length
       ? supabase
           .from("notes")
@@ -50,13 +50,6 @@ export default async function DashboardPage() {
       .limit(6)
       .then((r) => (r.data ?? []).flatMap((row) => (row.group ? [row.group] : []))),
     supabase
-      .from("ai_insights")
-      .select("id, kind, question, lecture_date, course_id, note_id, created_at")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(4)
-      .then((r) => r.data ?? []),
-    supabase
       .from("notes")
       .select("id", { count: "exact", head: true })
       .eq("author_id", user.id)
@@ -82,7 +75,7 @@ export default async function DashboardPage() {
     {
       done: myNoteCount > 0,
       label: "Share your first lecture notes",
-      description: "Help classmates catch up and give PeerNote notes to compare.",
+      description: "Help classmates who missed class catch up.",
       href: lastCourse ? `/courses/${lastCourse.id}/notes/new` : "/courses",
       action: "Share notes",
     },
@@ -190,11 +183,11 @@ export default async function DashboardPage() {
               )}
             </div>
             <div className="flex flex-wrap gap-2">
-              <ButtonLink href={`/courses/${lastCourse.id}/catch-up`} variant="secondary" size="sm">
-                Catch up on a class
+              <ButtonLink href={`/courses/${lastCourse.id}/materials`} variant="secondary" size="sm">
+                Class materials
               </ButtonLink>
-              <ButtonLink href={`/courses/${lastCourse.id}/ask`} variant="secondary" size="sm">
-                Ask the notes
+              <ButtonLink href={`/courses/${lastCourse.id}/video`} variant="secondary" size="sm">
+                Video call
               </ButtonLink>
             </div>
           </Card>
@@ -311,39 +304,6 @@ export default async function DashboardPage() {
                     </Link>
                   </li>
                 ))}
-              </ul>
-            )}
-          </section>
-
-          <section aria-labelledby="ai-heading">
-            <h2 id="ai-heading" className="mb-3 font-display text-xl font-semibold">Your AI study help</h2>
-            {insights.length === 0 ? (
-              <p className="text-sm text-muted">Gap checks, catch-up guides, and answers you generate are saved here.</p>
-            ) : (
-              <ul className="space-y-2 text-sm">
-                {insights.map((i) => {
-                  const course = courseById.get(i.course_id);
-                  const href =
-                    i.kind === "gap_fill" && i.note_id
-                      ? `/notes/${i.note_id}#gaps`
-                      : i.kind === "catch_up"
-                        ? `/courses/${i.course_id}/catch-up?date=${i.lecture_date}&guide=${i.id}`
-                        : `/courses/${i.course_id}/ask#${i.id}`;
-                  const label =
-                    i.kind === "gap_fill"
-                      ? "Gap check"
-                      : i.kind === "catch_up"
-                        ? `Catch-up guide for ${i.lecture_date ? formatDate(i.lecture_date) : "a class"}`
-                        : `“${i.question}”`;
-                  return (
-                    <li key={i.id}>
-                      <Link href={href} className="block rounded-lg px-2 py-1.5 hover:bg-surface-2">
-                        <span className="line-clamp-1 font-medium">{label}</span>
-                        <span className="text-muted">{course?.code} · {formatDate(i.created_at)}</span>
-                      </Link>
-                    </li>
-                  );
-                })}
               </ul>
             )}
           </section>

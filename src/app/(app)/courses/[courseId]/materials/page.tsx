@@ -88,7 +88,6 @@ export default async function MaterialsPage({ params, searchParams }: PageProps<
                     </div>
                     <h4 className="mt-2 font-display text-lg font-semibold">{item.title}</h4>
                     {item.description && <p className="mt-1 text-sm text-muted">{item.description}</p>}
-                    {item.ai_allowed && item.extracted_text && <p className="mt-2 text-xs text-brand">Available to AI study tools</p>}
                     {item.source_type === "link" && item.link_url ? (
                       <a href={item.link_url} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block text-sm font-medium text-brand hover:underline">
                         Open in Canvas / source site

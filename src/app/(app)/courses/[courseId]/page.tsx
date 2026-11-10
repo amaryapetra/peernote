@@ -89,7 +89,7 @@ export default async function CourseNotesPage({ params, searchParams }: PageProp
       </div>
       {byDate.size === 0 ? (
         q ? (
-          <EmptyState title={`No notes match “${q}”`}>Try a different word, or ask the AI on the Ask the notes tab.</EmptyState>
+          <EmptyState title={`No notes match “${q}”`}>Try a different word.</EmptyState>
         ) : (
           <EmptyState
             title="No notes yet"
@@ -112,8 +112,8 @@ export default async function CourseNotesPage({ params, searchParams }: PageProp
                     </span>
                   </h2>
                   {!iHaveNotes && (
-                    <Link href={`/courses/${course.id}/catch-up?date=${date}`} className="text-sm font-medium text-brand hover:underline">
-                      Missed this class? Get a catch-up guide
+                    <Link href={`/courses/${course.id}/notes/new?date=${date}`} className="text-sm font-medium text-brand hover:underline">
+                      Were you there? Share your notes
                     </Link>
                   )}
                 </div>

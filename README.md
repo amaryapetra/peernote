@@ -1,6 +1,6 @@
 # PeerNote
 
-PeerNote helps students in the same course share class notes, catch up on lectures they missed, and find classmates to study with. AI (Claude, by Anthropic) compares notes between classmates, fills in concepts one student missed, answers questions from the class's notes, and screens every upload so PeerNote never works as a test bank.
+PeerNote helps students in the same course share class notes, catch up on lectures they missed, and find classmates to study with in study groups and video calls. Every note is screened for exam and answer-key content so PeerNote doesn't become a test bank. PeerNote has no AI features and needs no paid AI service.
 
 Live site: https://peernote-eta.vercel.app
 
@@ -9,40 +9,41 @@ Live site: https://peernote-eta.vercel.app
 | Feature | Where | How it works |
 | --- | --- | --- |
 | Accounts | `/signup`, `/login` | Supabase Auth (email and password, email confirmation, password reset). Everything a student creates is saved to their account. |
-| Pick up where you left off | `/dashboard` | Remembers the last course you opened and shows new classmate notes, requests, groups, and saved AI results. |
+| Pick up where you left off | `/dashboard` | Remembers the last course you opened and shows new classmate notes, partner requests, and study groups. |
 | Courses | `/courses` | Organize joined courses into expandable semester folders; search for a course or add one. Joining a class requires its private 12-character invite code. |
-| Class materials | `/courses/[id]/materials` | Members can upload authorized PDFs, Office files, OpenDocument files, text and common images (up to 4 MB, 12 uploads/day; executables and archives are blocked), save Canvas/HTTPS links, organize by lecture date, preview PDFs and images, see a text preview of documents, slides, and spreadsheets, and optionally opt into AI-assisted study features. Private files use Supabase Storage and short-lived signed URLs. |
-| Share notes | `/courses/[id]/notes/new` | Markdown editor with preview, autosaved draft, and import from any file: Word, PowerPoint, Excel, OpenDocument, RTF, HTML, and text or code files are read directly (no AI needed); photos and PDFs are transcribed with AI. iPhone HEIC and other photo formats are converted to JPG in the browser first. |
-| Integrity screening | every note save | Keyword scan plus an AI check. Real quiz/exam content and answer keys are rejected with a reason. Notes can only be written by the server after the check passes. |
-| Fill the gaps (AI) | a note you wrote | Compares your notes with classmates' notes from the same lecture and lists what you missed, with sources. |
-| Catch up (AI) | `/courses/[id]/catch-up` | Builds a study guide from up to eight of the most-helpful notes for a class date. |
-| Ask the notes (AI) | `/courses/[id]/ask` | Postgres full-text search finds relevant notes; Claude answers with citations, or says the notes don't cover it. |
+| Class materials | `/courses/[id]/materials` | Members can upload authorized PDFs, Office files, OpenDocument files, text and common images (up to 4 MB, 12 uploads/day; executables and archives are blocked), save Canvas/HTTPS links, organize by lecture date, preview PDFs and images, and see a text preview of documents, slides, and spreadsheets. Private files use Supabase Storage and short-lived signed URLs. |
+| Share notes | `/courses/[id]/notes/new` | Markdown editor with preview, autosaved draft, and import from Word, PowerPoint, Excel, OpenDocument, RTF, HTML, and text or code files. Photos and PDFs can't be imported. |
+| Integrity screening | every note save | Keyword and pattern scan. Content that looks like quiz/exam questions or answer keys is rejected with a reason. Notes can only be written by the server after the check passes. |
+| Search notes | course Notes tab | Postgres full-text search across a course's notes. |
 | Study partners | `/partners`, course Classmates tab | Classmates ranked by shared courses, overlapping free time, and study style. Contact info is revealed only after both people agree. |
 | Study groups | course Study groups tab, `/groups/[id]` | Create or join a capped-size group with a time, place, and members-only message board. |
+| Video call | `/courses/[id]/video` | One Jitsi Meet room per course, opened in a new tab. Only members see the link. |
 | Notifications | `/notifications` | Private in-app alerts for new course notes, accepted study partner requests, group messages, and meeting reminders. |
 | Course moderation | `/courses/[id]/moderation` | Course creators review content reports, remove inappropriate content, block unauthorized students and rotate private invite links. |
 | Course invite links | `/join/[code]` | Classmates join from a shareable link after signing into PeerNote with a valid Tulane account. |
 
 ## Video calls
 
-PeerNote has no video calls. An earlier embedded Jitsi room was removed because a Jitsi meeting URL isn't protected by course membership and can be shared outside PeerNote. The old `course_video_rooms` table is kept in the database but isn't used. Bringing calls back needs a provider that authenticates each participant.
+Each course has a video room on the free public Jitsi Meet server (`meet.jit.si`). The room name is a random ID stored in `course_video_rooms`, readable only by enrolled students (RLS). Jitsi itself can't check course membership, so anyone who gets the link can join. To limit that, the course gets a new room whenever its creator removes a student or resets the invite (`20261110010000_video_room_rotation.sql`).
+
+The call opens in a new tab instead of being embedded in the page, because meet.jit.si ends embedded calls after about five minutes. Jitsi may ask the first person in a call to sign in to start it. For calls embedded in PeerNote or locked to course members, the team would need its own Jitsi server or a paid video API.
 
 ## Security and rollout considerations
 
 - **Course access:** Course metadata is searchable, but an invite code is required before joining and reading notes. Only members can view or share their course's code. PeerNote does not independently verify university enrollment; share codes only with classmates.
-- **Integrity screening:** Keyword checks always run. When an Anthropic key is configured, the entire note also receives AI screening; an AI outage prevents saving. Without an AI key, only keyword scanning runs and may miss prohibited content. No automated screen guarantees compliance with a school honor code.
-- **AI usage:** Apply every migration (including `20261027000000_atomic_ai_quota.sql`) before deploying the matching app code. AI quotas are reserved atomically in Postgres.
+- **Integrity screening:** A keyword and pattern scan runs on every note. It can miss prohibited content; classmates can report anything that slips through. No automated screen guarantees compliance with a school honor code.
+- **Old AI tables:** Earlier versions had AI features. Their tables (`ai_insights`, `ai_usage`) and quota function are still in the database but nothing uses them. Keep applying every migration in order.
 - **Invite-code rollout:** Apply `20261029160000_secure_course_invites.sql` with the corresponding app release. It rotates previously exposed six-character codes to twelve characters and blocks direct enrollments. Existing members retain access; old shared codes stop working. The app does not collect Canvas screenshots.
-- **Class materials rollout:** Apply `supabase/migrations/20261029170000_course_materials.sql` before deploying this version. File uploads use a private `course-materials` Storage bucket with course-members-only read access; uploads and deletions are performed server-side after membership checks. An uploader must confirm they have permission to share. Also apply `20261029190000_materials_any_file_type.sql`, which lets the database accept any file extension; the app itself only accepts the formats listed under File upload protections below. Only real PDFs and images open in the browser; every other file is stored as a generic download so an uploaded web page or script can't run for classmates. Only opt-in extracted text is available for AI; Canvas links are never fetched.
+- **Class materials rollout:** Apply `supabase/migrations/20261029170000_course_materials.sql` before deploying this version. File uploads use a private `course-materials` Storage bucket with course-members-only read access; uploads and deletions are performed server-side after membership checks. An uploader must confirm they have permission to share. Also apply `20261029190000_materials_any_file_type.sql`, which lets the database accept any file extension; the app itself only accepts the formats listed under File upload protections below. Only real PDFs and images open in the browser; every other file is stored as a generic download so an uploaded web page or script can't run for classmates. Canvas links are never fetched.
 - **Pilot upgrade:** Apply `20261108000000_student_safety.sql` and `20261108001000_group_reminders.sql` to Supabase before deploying the matching app. These create in-app notifications, course reporting and moderation, join bans, upload-rate reservations, structured study group meetings and RSVP reminders. Existing content and accounts are kept.
 - **Study group meeting fixes:** Apply `20261110000000_group_meeting_fixes.sql`. It lets organizers set and change meeting times (previously blocked by a missing column permission) and stops meeting reminders for students who left the group.
-- **Privacy:** Avoid uploading private or instructor-restricted content. Test with multiple accounts and live Supabase/Anthropic before a public launch.
+- **Privacy:** Avoid uploading private or instructor-restricted content. Test with multiple accounts and live Supabase before a public launch.
 
 ## Tech stack and architecture
 
 - **Frontend and server:** Next.js 16 (App Router, Server Components, Server Actions, Cache Components) with TypeScript and Tailwind CSS 4.
 - **Database and auth:** Supabase. Postgres holds all data; Supabase Auth handles accounts. Row level security (RLS) policies enforce who can see what in the database itself, so a bug in the website can't leak another course's notes.
-- **AI:** Claude API (`@anthropic-ai/sdk`), called only from the server so the key never reaches the browser. Responses use structured outputs validated with Zod. Each student has hourly limits per AI feature.
+- **Video calls:** Jitsi Meet (meet.jit.si), opened in a new tab.
 - **Hosting:** Vercel, deployed from this repo's `main` branch, on a custom domain.
 
 ```
@@ -52,12 +53,11 @@ src/
     (auth)/          Login, sign up, password reset
     (app)/           Signed-in app: dashboard, courses, notes, groups, partners, profile
     actions/         Server Actions (every one re-checks who the user is)
-    api/transcribe/  Imports a notes file (any format) as Markdown
+    api/import-notes/ Imports a notes file (Word, slides, text...) as Markdown
     auth/confirm/    Landing route for email links
     sitemap.ts, robots.ts, opengraph-image.tsx, manifest.ts
   components/        UI pieces
   lib/
-    ai/              Claude prompts and the shared client
     supabase/        Server, admin, and proxy clients
     matching.ts      Study-partner scoring
     integrity.ts     Keyword pre-check for uploads
@@ -96,10 +96,6 @@ Open [http://localhost:3000](http://localhost:3000).
    - Then go to **Authentication > Rate Limits** and raise **Rate limit for sending emails** (for example to 100 per hour).
    - Alternative for testing only: turning off **Confirm email** under **Authentication > Sign In / Providers > Email** skips the email entirely, but then nobody's email address is verified.
 
-### 2. Add a Claude API key (optional but recommended)
-
-Create a key at [console.anthropic.com](https://console.anthropic.com) (add billing credit under **Plans & Billing**) and set `ANTHROPIC_API_KEY`: in `.env.local` locally, and in Vercel under **Settings > Environment Variables** for Production and Preview. Vercel only picks up a new variable on the next deploy, so redeploy after adding it. Without it, the app still works; AI buttons explain that AI isn't set up, photo/PDF transcription is off, and uploads get the keyword integrity scan only.
-
 ### Environment variables
 
 | Name | Where it's used | Secret? |
@@ -108,8 +104,6 @@ Create a key at [console.anthropic.com](https://console.anthropic.com) (add bill
 | `NEXT_PUBLIC_SUPABASE_URL` | All Supabase calls | No |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | All Supabase calls (RLS applies) | No |
 | `SUPABASE_SERVICE_ROLE_KEY` | Saving notes after the integrity check | **Yes** |
-| `ANTHROPIC_API_KEY` | AI features | **Yes** |
-| `ANTHROPIC_MODEL` | Optional model override (default `claude-opus-5-5`) | No |
 
 Never commit `.env.local`. The `.gitignore` already excludes `.env*` files except `.env.example`.
 

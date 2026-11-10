@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { NoteEditor } from "@/components/note-editor";
-import { isAiConfigured } from "@/lib/ai/client";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
@@ -28,7 +27,6 @@ export default async function EditNotePage({ params }: PageProps<"/notes/[noteId
         courseId={note.course_id}
         noteId={note.id}
         initial={{ title: note.title, lecture_date: note.lecture_date, topic: note.topic, content: note.content }}
-        aiEnabled={isAiConfigured()}
         cancelHref={`/notes/${note.id}`}
       />
     </div>

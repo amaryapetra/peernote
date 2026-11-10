@@ -1,6 +1,5 @@
-// Fast, local pre-check for academic-integrity problems in uploaded notes.
-// The AI screen (src/lib/ai/integrity.ts) makes the final call; this catches
-// obvious cases for free and keeps the app safe when no AI key is configured.
+// Local check for academic-integrity problems in shared notes and materials.
+// It blocks obvious exam and answer-key content; it can't catch everything.
 
 export type HeuristicVerdict = {
   level: "clear" | "suspicious" | "block";

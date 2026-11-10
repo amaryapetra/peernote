@@ -1,17 +1,19 @@
 import "server-only";
 import { extractPptxText } from "@/lib/material-text";
 import { isZip, listZipEntries, readZipText, xmlText, type ZipEntry } from "@/lib/zip";
-import type { TranscribeType } from "@/lib/ai/transcribe";
 
-// Turns an uploaded file of any format into Markdown for the note editor.
+// Turns an uploaded file into Markdown for the note editor and text previews.
 // Text-based formats (Word, PowerPoint, Excel, OpenDocument, RTF, HTML, plain
-// text and code) are read here with no AI. Photos and PDFs go to AI transcription.
+// text and code) are read here. Photos and PDFs are recognized but not read.
 // The file type is detected from the file's bytes, not its name, since
 // browsers often send a blank or wrong type.
 
+/** PDFs and the photo formats browsers can display. */
+export type MediaType = "application/pdf" | "image/jpeg" | "image/png" | "image/gif" | "image/webp";
+
 export type NoteImport =
   | { kind: "text"; text: string }
-  | { kind: "ai"; mediaType: TranscribeType }
+  | { kind: "media"; mediaType: MediaType }
   | { kind: "unsupported"; message: string };
 
 // Matches the note length limit in saveNote.
@@ -44,13 +46,13 @@ export function prepareNoteImport(data: Buffer, fileName: string): NoteImport {
   if (data.length === 0) return { kind: "unsupported", message: "That file is empty." };
   const magic = data.length >= 4 ? data.readUInt32BE(0) : 0;
 
-  // Photos and PDFs Claude can read directly.
-  if (data.toString("latin1", 0, 5) === "%PDF-") return { kind: "ai", mediaType: "application/pdf" };
-  if (data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff) return { kind: "ai", mediaType: "image/jpeg" };
-  if (magic === 0x89504e47) return { kind: "ai", mediaType: "image/png" };
-  if (data.toString("latin1", 0, 4) === "GIF8") return { kind: "ai", mediaType: "image/gif" };
+  // Photos and PDFs: no text to pull out here.
+  if (data.toString("latin1", 0, 5) === "%PDF-") return { kind: "media", mediaType: "application/pdf" };
+  if (data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff) return { kind: "media", mediaType: "image/jpeg" };
+  if (magic === 0x89504e47) return { kind: "media", mediaType: "image/png" };
+  if (data.toString("latin1", 0, 4) === "GIF8") return { kind: "media", mediaType: "image/gif" };
   if (data.toString("latin1", 0, 4) === "RIFF" && data.toString("latin1", 8, 12) === "WEBP") {
-    return { kind: "ai", mediaType: "image/webp" };
+    return { kind: "media", mediaType: "image/webp" };
   }
   if (isOtherImage(data)) {
     return { kind: "unsupported", message: "We couldn't read that photo format. Save it as a JPG or PNG and try again." };

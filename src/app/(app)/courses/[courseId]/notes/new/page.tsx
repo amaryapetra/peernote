@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { NoteEditor } from "@/components/note-editor";
-import { isAiConfigured } from "@/lib/ai/client";
 import { getCourse } from "@/lib/data";
 import { todayISO } from "@/lib/format";
 
@@ -19,7 +18,6 @@ export default async function NewNotePage({ params, searchParams }: PageProps<"/
       <NoteEditor
         courseId={course.id}
         initial={{ title: "", lecture_date: date, topic: "", content: "" }}
-        aiEnabled={isAiConfigured()}
         cancelHref={`/courses/${course.id}`}
       />
     </div>

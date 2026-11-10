@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Badge, ButtonLink } from "@/components/ui";
-import { CatchUpPreview, GapPreview, HeroPreview, StudyPhoto } from "@/components/marketing-product-visuals";
+import { HeroPreview, LectureNotesPreview, StudyGroupPreview, StudyPhoto } from "@/components/marketing-product-visuals";
 import { SITE_URL } from "@/lib/env";
 
 export const metadata: Metadata = {
@@ -10,9 +10,9 @@ export const metadata: Metadata = {
 
 const MORE_FEATURES = [
   {
-    tag: "Ask AI",
-    title: "Ask your class's notes",
-    body: "Get answers grounded in your classmates' notes and authorized lecture materials, with citations to the sources.",
+    tag: "Meet up",
+    title: "Video calls with your class",
+    body: "Every course has its own video room, so you can review together even when you can't meet in person.",
   },
   {
     tag: "Study together",
@@ -29,7 +29,7 @@ const MORE_FEATURES = [
 const STEPS = [
   { n: "1", title: "Join your courses", body: "Search for your class and enter a classmate's invite code, or create a new course." },
   { n: "2", title: "Share what you learned", body: "Share your notes and permitted slides, or link directly to materials on Canvas." },
-  { n: "3", title: "Fill gaps together", body: "Build catch-up guides, compare notes, and find classmates to study with." },
+  { n: "3", title: "Study together", body: "Read classmates' notes, start a study group, hop on a video call, and find a study partner." },
 ];
 
 const FAQ = [
@@ -50,8 +50,8 @@ const FAQ = [
     a: "No. Every upload is checked, and anything that looks like real quiz, test, or exam questions or answer keys is rejected. PeerNote is for class notes and your own study materials, not a test bank.",
   },
   {
-    q: "How does the AI know what I missed?",
-    a: "When you ask, PeerNote sends your notes and your classmates' notes from the same lecture to Claude, an AI model by Anthropic. It lists the ideas your classmates captured that you didn't, with explanations and links to the source notes.",
+    q: "How do video calls work?",
+    a: "Each course has its own video room on Jitsi Meet, a free video service. Only students in the course can see the room link in PeerNote. It opens in a new tab, with video, audio, chat, and screen sharing.",
   },
 ];
 
@@ -65,7 +65,7 @@ export default function HomePage() {
       applicationCategory: "EducationalApplication",
       operatingSystem: "Any (web browser)",
       description:
-        "Share class notes with classmates, catch up on missed lectures with AI study guides, and find study partners in your courses.",
+        "Share class notes with classmates, catch up on missed lectures, join study groups and video calls, and find study partners in your courses.",
       offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
     },
     {
@@ -96,7 +96,7 @@ export default function HomePage() {
               Miss a lecture? <span className="mark">Your class</span> has you covered.
             </h1>
             <p className="mt-6 max-w-lg text-lg leading-relaxed text-muted">
-              Share notes, catch what you missed with AI, and find classmates to study with.
+              Share notes, catch up on what you missed, and find classmates to study with.
               A better way to keep up, together.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
@@ -142,27 +142,27 @@ export default function HomePage() {
           </div>
           <div className="mt-10 grid items-center gap-8 rounded-2xl border border-line bg-surface p-5 shadow-sm sm:p-8 lg:grid-cols-2 lg:gap-12">
             <div>
-              <Badge tone="brand">01 · Fill the gaps</Badge>
-              <h3 className="mt-4 font-display text-2xl font-semibold">See what you missed. Understand why it matters.</h3>
+              <Badge tone="brand">01 · Catch up</Badge>
+              <h3 className="mt-4 font-display text-2xl font-semibold">Missed class? Your classmates took notes.</h3>
               <p className="mt-3 leading-relaxed text-muted">
-                Compare your notes with classmates&apos; notes from the same lecture and discover the explanations,
-                examples, or key terms that slipped by you.
+                Notes are organized by lecture date, so you can open the day you missed and read what everyone
+                wrote down. The most helpful notes rise to the top.
               </p>
-              <p className="mt-4 text-sm font-medium text-brand-strong">Make your notes more complete, without starting over.</p>
+              <p className="mt-4 text-sm font-medium text-brand-strong">No more scrambling through group chats.</p>
             </div>
-            <GapPreview />
+            <LectureNotesPreview />
           </div>
           <div className="mt-5 grid items-center gap-8 rounded-2xl border border-line bg-surface p-5 shadow-sm sm:p-8 lg:grid-cols-2 lg:gap-12">
             <div className="lg:order-2">
-              <Badge tone="brand">02 · Catch up</Badge>
-              <h3 className="mt-4 font-display text-2xl font-semibold">Missed class? Find the important parts.</h3>
+              <Badge tone="brand">02 · Study together</Badge>
+              <h3 className="mt-4 font-display text-2xl font-semibold">Plan a session. Show up, in person or on video.</h3>
               <p className="mt-3 leading-relaxed text-muted">
-                Pick a lecture date and build a structured guide from notes classmates have shared,
-                plus lecture materials approved for AI analysis.
+                Start a study group with a time and place, see who&apos;s going, and get a reminder before it starts.
+                Every course also has its own video room for studying together remotely.
               </p>
-              <p className="mt-4 text-sm font-medium text-brand-strong">Organized ideas, grounded in your class&apos;s material.</p>
+              <p className="mt-4 text-sm font-medium text-brand-strong">Find your people in every class.</p>
             </div>
-            <div className="lg:order-1"><CatchUpPreview /></div>
+            <div className="lg:order-1"><StudyGroupPreview /></div>
           </div>
           <div className="mt-5 grid gap-4 md:grid-cols-3">
             {MORE_FEATURES.map((feature) => (

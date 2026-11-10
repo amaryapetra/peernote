@@ -99,7 +99,7 @@ body {
   background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 31px, var(--line) 31px, var(--line) 32px);
 }
 
-/* Rendered Markdown inside notes and AI answers. */
+/* Rendered Markdown inside notes. */
 .prose-note {
   line-height: 1.7;
   overflow-wrap: anywhere;
