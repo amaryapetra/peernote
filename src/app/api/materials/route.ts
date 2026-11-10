@@ -5,92 +5,101 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { validateClassMaterial, verifyExternalMalwareScan } from "@/lib/upload-security";
 import { MATERIAL_TEXT_LIMIT } from "@/lib/material-text";
-import { INLINE_TYPES, fileExtension, isInlineType } from "@/lib/material-files";
+import { INLINE_TYPES, MAX_MATERIAL_BYTES, fileExtension, isInlineType } from "@/lib/material-files";
 import { prepareNoteImport } from "@/lib/note-import";
 import { screenNoteHeuristically } from "@/lib/integrity";
+import { MATERIALS_BUCKET, UUID, stagingPath } from "@/lib/material-upload";
 
-const MAX_BYTES = 4 * 1024 * 1024;
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const maxDuration = 60;
 
 function fail(error: string, status: number) { return NextResponse.json({ error }, { status }); }
 
+/**
+ * Step 2 of an upload: the file is already in the student's staging folder.
+ * Check it, store it where classmates can open it, and save its details.
+ */
 export async function POST(request: NextRequest) {
   const user = await getSessionUser();
-  if (!user) return fail("Log in before uploading materials.", 401);
-  const form = await request.formData().catch(() => null);
-  if (!form) return fail("Invalid upload form.", 400);
-  const courseId = String(form.get("courseId") ?? "");
-  const title = String(form.get("title") ?? "").trim();
-  const description = String(form.get("description") ?? "").trim();
-  const date = String(form.get("lectureDate") ?? "");
-  const file = form.get("file");
-  if (!UUID.test(courseId) || title.length < 2 || title.length > 140 ||
-      description.length > 600 || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    return fail("Enter a title and valid lecture date.", 400);
-  }
-  if (form.get("permission") !== "on") {
-    return fail("Confirm that you have permission to share this material and it is not exam material.", 400);
-  }
-  if (!(file instanceof File) || file.size === 0) return fail("Choose a file to upload.", 400);
-  if (file.size > MAX_BYTES) return fail("Files must be 4 MB or smaller.", 413);
-  const supabase = await createClient();
-  const { data: member } = await supabase.from("enrollments").select("course_id")
-    .eq("course_id", courseId).eq("user_id", user.id).maybeSingle();
-  if (!member) return fail("Join this course before sharing materials.", 403);
-
-  const bytes = Buffer.from(await file.arrayBuffer());
-  const unsafeReason = validateClassMaterial(file.name, bytes);
-  if (unsafeReason) return fail(unsafeReason, 415);
-  try { await verifyExternalMalwareScan(bytes, file.name); }
-  catch (error) {
-    console.error("malware scan rejected or failed", error);
-    return fail(error instanceof Error ? error.message : "File scanning failed.", 422);
-  }
-  const { data: reserved, error: quotaError } = await supabase.rpc("reserve_material_upload", { p_course: courseId });
-  if (quotaError || !reserved) return fail(quotaError ? "Couldn't verify your upload allowance." : "You've uploaded 12 files in the last 24 hours. Try again later.", 429);
-
-  // Read the text of documents, slides, and spreadsheets for the preview.
-  let prepared: ReturnType<typeof prepareNoteImport>;
-  try { prepared = prepareNoteImport(bytes, file.name); }
-  catch {
-    return fail("Could not read this file. Try exporting to PDF or a common Office format.", 422);
-  }
-  const text = prepared.kind === "text" ? prepared.text.slice(0, MATERIAL_TEXT_LIMIT) : "";
-  if (text && screenNoteHeuristically({ title, topic: "Class material", content: text }).level === "block") {
-    return fail("This file appears to include assessment material and cannot be shared.", 422);
+  if (!user) return fail("Log in before uploading.", 401);
+  const form = (await request.json().catch(() => null)) as Record<string, unknown> | null;
+  const field = (key: string) => (typeof form?.[key] === "string" ? (form[key] as string).trim() : "");
+  const courseId = field("courseId");
+  const uploadId = field("uploadId");
+  const fileName = field("fileName");
+  const title = field("title");
+  const description = field("description");
+  const date = field("lectureDate");
+  const kind = field("kind") === "notes" ? "notes" : "material";
+  if (!UUID.test(courseId) || !UUID.test(uploadId) || !fileName) return fail("Upload the file again.", 400);
+  if (title.length < 2 || title.length > 140 || description.length > 600) return fail("Enter a title (2 to 140 characters).", 400);
+  if (date ? !/^\d{4}-\d{2}-\d{2}$/.test(date) : kind === "notes") return fail("Pick the lecture date.", 400);
+  if (form?.permission !== true) {
+    return fail("Confirm that you have permission to share this file and it is not exam material.", 400);
   }
 
-  // Only real PDFs and images are stored with a type browsers display. Everything
-  // else is stored as a generic download, so an uploaded web page or script can
-  // never run in a classmate's browser.
-  let fileType = fileExtension(file.name);
-  if (prepared.kind === "media") {
-    fileType = prepared.mediaType === "application/pdf" ? "pdf" : prepared.mediaType.slice("image/".length).replace("jpeg", "jpg");
-  } else if (isInlineType(fileType)) {
-    fileType = "file"; // named like a PDF or image, but it isn't one
-  }
-  const contentType = isInlineType(fileType) ? INLINE_TYPES[fileType] : "application/octet-stream";
-
-  const safeFileName = file.name.split(/[\\/]/).pop()!.replace(/[^a-zA-Z0-9_. ()-]/g, "_").slice(0, 180) || "file";
-  const path = `${courseId}/${user.id}/${randomUUID()}.${fileType}`;
   const admin = createAdminClient();
-  const { error: uploadError } = await admin.storage.from("course-materials").upload(path, bytes, {
-    contentType, upsert: false, cacheControl: "60",
-  });
-  if (uploadError) {
-    console.error("material storage failed", uploadError);
-    return fail("Couldn't save this file. Please try again.", 502);
-  }
+  const staged = stagingPath(user.id, uploadId);
+  try {
+    const supabase = await createClient();
+    const { data: member } = await supabase.from("enrollments").select("course_id")
+      .eq("course_id", courseId).eq("user_id", user.id).maybeSingle();
+    if (!member) return fail("Join this course before sharing files.", 403);
 
-  const { error: saveError } = await admin.from("course_materials").insert({
-    course_id: courseId, uploaded_by: user.id, title, description,
-    lecture_date: date, source_type: "file", file_type: fileType,
-    file_name: safeFileName, storage_path: path, extracted_text: text,
-  });
-  if (saveError) {
-    console.error("material metadata insert failed", saveError);
-    await admin.storage.from("course-materials").remove([path]);
-    return fail("Couldn't save the file details. Please try again.", 502);
+    const { data: blob, error: downloadError } = await admin.storage.from(MATERIALS_BUCKET).download(staged);
+    if (downloadError || !blob) return fail("The upload didn't finish. Try again.", 400);
+    if (blob.size > MAX_MATERIAL_BYTES) return fail("That file is too large.", 413);
+    const bytes = Buffer.from(await blob.arrayBuffer());
+
+    const unsafeReason = validateClassMaterial(fileName, bytes);
+    if (unsafeReason) return fail(unsafeReason, 415);
+    try { await verifyExternalMalwareScan(bytes, fileName); }
+    catch (error) {
+      console.error("malware scan rejected or failed", error);
+      return fail(error instanceof Error ? error.message : "File scanning failed.", 422);
+    }
+
+    // Read the text of documents, slides, and spreadsheets for the preview and integrity check.
+    let prepared: ReturnType<typeof prepareNoteImport>;
+    try { prepared = prepareNoteImport(bytes, fileName); }
+    catch { return fail("Could not read this file. Try exporting it as a PDF.", 422); }
+    const text = prepared.kind === "text" ? prepared.text.slice(0, MATERIAL_TEXT_LIMIT) : "";
+    if (text && screenNoteHeuristically({ title, topic: "", content: text }).level === "block") {
+      return fail("This file appears to include quiz or exam material and can't be shared.", 422);
+    }
+
+    // Only real PDFs and images are stored with a type browsers display. Everything
+    // else is stored as a generic download, so an uploaded web page or script can
+    // never run in a classmate's browser.
+    let fileType = fileExtension(fileName);
+    if (prepared.kind === "media") {
+      fileType = prepared.mediaType === "application/pdf" ? "pdf" : prepared.mediaType.slice("image/".length).replace("jpeg", "jpg");
+    } else if (isInlineType(fileType)) {
+      fileType = "file"; // named like a PDF or image, but it isn't one
+    }
+    const contentType = isInlineType(fileType) ? INLINE_TYPES[fileType] : "application/octet-stream";
+
+    const safeFileName = fileName.split(/[\\/]/).pop()!.replace(/[^a-zA-Z0-9_. ()-]/g, "_").slice(0, 180) || "file";
+    const path = `${courseId}/${user.id}/${randomUUID()}.${fileType}`;
+    const { error: uploadError } = await admin.storage.from(MATERIALS_BUCKET).upload(path, bytes, {
+      contentType, upsert: false, cacheControl: "60",
+    });
+    if (uploadError) {
+      console.error("material storage failed", uploadError);
+      return fail("Couldn't save this file. Please try again.", 502);
+    }
+
+    const { error: saveError } = await admin.from("course_materials").insert({
+      course_id: courseId, uploaded_by: user.id, title, description, kind,
+      lecture_date: date || null, source_type: "file", file_type: fileType,
+      file_name: safeFileName, storage_path: path, extracted_text: text,
+    });
+    if (saveError) {
+      console.error("material metadata insert failed", saveError);
+      await admin.storage.from(MATERIALS_BUCKET).remove([path]);
+      return fail("Couldn't save the file details. Please try again.", 502);
+    }
+    return NextResponse.json({ success: true });
+  } finally {
+    await admin.storage.from(MATERIALS_BUCKET).remove([staged]).catch(() => {});
   }
-  return NextResponse.json({ success: true });
 }

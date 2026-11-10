@@ -2,6 +2,10 @@
 // in the browser; everything else is downloaded. Which files can be uploaded at
 // all is decided in upload-security.ts.
 
+/** Largest class material or notes file, matching the storage bucket's limit. */
+export const MAX_MATERIAL_BYTES = 25 * 1024 * 1024;
+export const MAX_MATERIAL_LABEL = "25 MB";
+
 /** Types that open in the browser. The upload route only stores these when the bytes really are that type. */
 export const INLINE_TYPES: Record<string, string> = {
   pdf: "application/pdf",

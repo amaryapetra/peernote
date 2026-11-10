@@ -66,6 +66,18 @@ export function NoteEditor({
 
   async function handleImport(picked: File) {
     setImportMessage(null);
+    // PDFs and photos can't become editable text, but they can be shared as a file.
+    if (/\.(pdf|jpe?g|png|gif|webp|heic|heif)$/i.test(picked.name) || picked.type === "application/pdf" || picked.type.startsWith("image/")) {
+      const upload = noteId ? null : document.getElementById("upload-notes-file");
+      setImportMessage({
+        tone: "info",
+        text: upload
+          ? "PDFs and photos can't be turned into text, but you can share the file itself in “Upload a file of your notes” below."
+          : "PDFs and photos can't be turned into text. To share one as a file, use “Upload a file of your notes” on the Share notes page.",
+      });
+      upload?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
     if (/\.(md|markdown|txt)$/i.test(picked.name) || picked.type === "text/plain" || picked.type === "text/markdown") {
       const text = await picked.text();
       setValues((v) => ({ ...v, content: v.content ? `${v.content}\n\n${text}` : text }));
@@ -177,7 +189,7 @@ export function NoteEditor({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-sm">
             <p className="font-medium">Import notes</p>
-            <p className="text-muted">Upload a Word doc, slides, a spreadsheet, or a text file to start from its text.</p>
+            <p className="text-muted">Start from the text of a Word doc, slides, a spreadsheet, or a text file.</p>
           </div>
           <div>
             <input

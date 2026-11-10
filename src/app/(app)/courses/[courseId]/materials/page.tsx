@@ -28,17 +28,19 @@ export default async function MaterialsPage({ params, searchParams }: PageProps<
   };
   let list = supabase.from("course_materials")
     .select("*", {count:"exact"}).eq("course_id", course.id)
-    .order("lecture_date", { ascending: false })
+    .order("lecture_date", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false }).range((page-1)*pageSize,page*pageSize-1);
   if (q) list = list.ilike("title", `%${q}%`);
   const { data, error, count } = await list;
   const totalPages = Math.max(1,Math.ceil((count??0)/pageSize));
   const materials = (data ?? []) as Material[];
+  // Grouped by lecture date; undated items come last (the query sorts them there).
   const byDate = new Map<string, Material[]>();
   for (const item of materials) {
-    const list = byDate.get(item.lecture_date) ?? [];
+    const key = item.lecture_date ?? "";
+    const list = byDate.get(key) ?? [];
     list.push(item);
-    byDate.set(item.lecture_date, list);
+    byDate.set(key, list);
   }
   return (
     <div className="space-y-8">
@@ -69,15 +71,18 @@ export default async function MaterialsPage({ params, searchParams }: PageProps<
       ) : (
         <div className="space-y-7">
           {[...byDate.entries()].map(([date, items]) => (
-            <section key={date} aria-label={formatDate(date)} className="space-y-3">
-              <h3 className="font-display text-lg font-semibold">{formatDate(date)}</h3>
+            <section key={date || "undated"} aria-label={date ? formatDate(date) : "No lecture date"} className="space-y-3">
+              <h3 className="font-display text-lg font-semibold">{date ? formatDate(date) : "No lecture date"}</h3>
               <ul className="grid gap-3 md:grid-cols-2">
                 {items.map((item) => (
                   <li key={item.id} id={`material-${item.id}`} className="scroll-mt-24 rounded-xl border border-line bg-surface p-4">
                     <div className="flex items-center justify-between gap-3">
-                      <Badge tone={item.source_type === "file" ? "brand" : "neutral"}>
-                        {fileKindLabel(item.file_type)}
-                      </Badge>
+                      <span className="flex gap-1.5">
+                        <Badge tone={item.source_type === "file" ? "brand" : "neutral"}>
+                          {fileKindLabel(item.file_type)}
+                        </Badge>
+                        {item.kind === "notes" && <Badge tone="success">Student notes</Badge>}
+                      </span>
                       {item.uploaded_by !== user.id && <ReportContentForm courseId={course.id} targetId={item.id} targetType="material" />}
                       {item.uploaded_by === user.id && (
                         <form action={deleteCourseMaterial}>

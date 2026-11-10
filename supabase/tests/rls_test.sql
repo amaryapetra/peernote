@@ -249,6 +249,20 @@ reset role;
 select pg_temp.act('00000000-0000-0000-0000-00000000000c');
 select pg_temp.expect_fail($q$update notifications set user_id='00000000-0000-0000-0000-00000000000a'$q$, 'notifications cannot be reassigned');
 select pg_temp.check((select count(*) from notifications where user_id=auth.uid())>=1, 'member receives note notification');
+reset role;
+-- Note files and optional lecture dates.
+set role service_role;
+insert into course_materials (course_id, uploaded_by, title, source_type, link_url)
+values ('10000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-00000000000a','Syllabus link','link','https://canvas.example.edu/syllabus');
+select pg_temp.check(true, 'class material without a lecture date');
+select pg_temp.expect_fail($q$insert into course_materials (course_id, uploaded_by, title, kind, source_type, file_type, file_name, storage_path)
+values ('10000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-00000000000a','Undated notes','notes','file','pdf','n.pdf','10000000-0000-0000-0000-000000000001/a/undated.pdf')$q$, 'note files need a lecture date');
+insert into course_materials (course_id, uploaded_by, title, lecture_date, kind, source_type, file_type, file_name, storage_path)
+values ('10000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-00000000000a','Handwritten notes','2026-10-03','notes','file','jpg','n.jpg','10000000-0000-0000-0000-000000000001/a/notes.jpg');
+reset role;
+select pg_temp.act('00000000-0000-0000-0000-00000000000c');
+select pg_temp.check((select count(*) from notifications where user_id=auth.uid() and body='Handwritten notes')=1, 'classmates notified about a notes file');
+select pg_temp.check((select count(*) from course_materials where kind='notes')=1, 'member sees notes file');
 select pg_temp.check(public.reserve_material_upload('10000000-0000-0000-0000-000000000001'), 'upload reservation allowed for member');
 select pg_temp.expect_fail($q$select public.rotate_course_invite('10000000-0000-0000-0000-000000000001')$q$, 'non-owner cannot rotate code'); 
 reset role;
