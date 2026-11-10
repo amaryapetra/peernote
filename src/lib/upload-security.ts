@@ -1,3 +1,4 @@
+import {MAX_MATERIAL_BYTES,MAX_MATERIAL_LABEL} from "@/lib/material-files";
 /** Strict upload gate for untrusted classroom files.
  *  Extension allowlisting and signatures are hardening, NOT virus scanning.
  */
@@ -5,10 +6,17 @@ const FILE_TYPES = new Set(["pdf","jpg","jpeg","png","webp","gif","docx","pptx",
 const BLOCKED_IN_NAME = /\.(?:exe|msi|bat|cmd|scr|ps1|vbs|js|jar|app|dmg|apk|html?|svg)(?:\.|$)/i;
 const printable = (bytes:Uint8Array) => !bytes.subarray(0,4096).includes(0);
 const starts=(b:Uint8Array,...n:number[])=>n.every((v,i)=>b[i]===v);
-export function validateClassMaterial(name:string,bytes:Uint8Array):string|null {
+/** Checks just the file name, before any bytes are uploaded. */
+export function checkMaterialName(name:string):string|null {
  const ext=/\.([a-z0-9]+)$/i.exec(name)?.[1].toLowerCase()??"";
  if(!FILE_TYPES.has(ext)||BLOCKED_IN_NAME.test(name))return "Upload a PDF, Office document, presentation, spreadsheet, text file, or common image. Executables and archives are not accepted.";
- if(!bytes.length||bytes.length>4*1024*1024)return "Choose a file no larger than 4 MB.";
+ return null;
+}
+export function validateClassMaterial(name:string,bytes:Uint8Array):string|null {
+ const nameError=checkMaterialName(name);
+ if(nameError)return nameError;
+ const ext=/\.([a-z0-9]+)$/i.exec(name)![1].toLowerCase();
+ if(!bytes.length||bytes.length>MAX_MATERIAL_BYTES)return `Choose a file no larger than ${MAX_MATERIAL_LABEL}.`;
  const text=new TextDecoder("latin1").decode(bytes.subarray(0,24));
  if(ext==="pdf"&&!text.startsWith("%PDF-"))return "This file does not contain a valid PDF header.";
  if((ext==="jpg"||ext==="jpeg")&&!starts(bytes,0xff,0xd8,0xff))return "Invalid JPEG file.";

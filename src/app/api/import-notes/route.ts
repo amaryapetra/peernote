@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
   if (prepared.kind === "unsupported") return NextResponse.json({ error: prepared.message }, { status: 415 });
   if (prepared.kind === "media") {
     return NextResponse.json(
-      { error: "Photos and PDFs can't be imported. Copy the text into the editor, or upload a Word, slides, or text file." },
+      { error: "Photos and PDFs can't be turned into text. To share one as a file, use “Upload a file of your notes” on the Share notes page." },
       { status: 415 },
     );
   }

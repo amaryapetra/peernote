@@ -147,7 +147,8 @@ export type Database = {
           uploaded_by: string;
           title: string;
           description: string;
-          lecture_date: string;
+          lecture_date: string | null;
+          kind: "material" | "notes";
           source_type: "file" | "link";
           file_type: string | null;
           file_name: string | null;
@@ -164,7 +165,8 @@ export type Database = {
           uploaded_by: string;
           title: string;
           description?: string;
-          lecture_date: string;
+          lecture_date?: string | null;
+          kind?: "material" | "notes";
           source_type: "file" | "link";
           file_type?: string | null;
           file_name?: string | null;
