@@ -20,13 +20,15 @@ export async function sendDirectMessage(_prev: FormState, formData: FormData): P
   const supabase = await createClient();
   const { error } = await supabase.from("direct_messages").insert({ sender_id: user.id, recipient_id: recipientId, body });
   if (error) {
-    const tooFast = error.code === "54000";
-    return {
-      values: { body },
-      error: tooFast
-        ? "You're sending messages too quickly. Wait a minute and try again."
-        : "You can only message people who are your study partners.",
-    };
+    console.error("sendDirectMessage failed", error.code, error.message);
+    let message = "Couldn't send your message. Try again in a moment.";
+    // 54000: our flood limit. 42501: RLS refused it (not partners).
+    // 42P01 / PGRST205: the direct_messages table hasn't been created in this database yet.
+    if (error.code === "54000") message = "You're sending messages too quickly. Wait a minute and try again.";
+    else if (error.code === "42501") message = "You can only message people who are your study partners.";
+    else if (error.code === "42P01" || error.code === "PGRST205")
+      message = "Messaging isn't set up on PeerNote yet. Ask your team to run the direct messages database update in Supabase.";
+    return { values: { body }, error: message };
   }
   refresh();
   return undefined;
