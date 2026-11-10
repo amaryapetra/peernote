@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Reading photos and PDFs needs AI, which isn't set up on this server yet." }, { status: 503 });
   }
   const supabase = await createClient();
-  const limited = await checkAndRecordUsage(supabase, user.id, "transcribe");
+  const limited = await checkAndRecordUsage(supabase, "transcribe");
   if (limited) return NextResponse.json({ error: limited }, { status: 429 });
 
   try {

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { CreateGroupForm } from "@/components/group-forms";
 import { Badge, Card, EmptyState } from "@/components/ui";
 import { getCourse } from "@/lib/data";
+import { formatMeetingTime } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Study groups" };
 
@@ -41,7 +42,7 @@ export default async function GroupsPage({ params }: PageProps<"/courses/[course
                     </div>
                     {g.description && <p className="mt-1 line-clamp-2 text-sm text-muted">{g.description}</p>}
                     <dl className="mt-3 space-y-1 text-sm">
-                      <div className="flex gap-2"><dt className="text-muted">When</dt><dd>{g.meeting_starts_at?new Intl.DateTimeFormat("en-US",{dateStyle:"medium",timeStyle:"short",timeZone:"America/Chicago"}).format(new Date(g.meeting_starts_at))+" CT":g.meeting_time||"TBD"}</dd></div>
+                      <div className="flex gap-2"><dt className="text-muted">When</dt><dd>{formatMeetingTime(g.meeting_starts_at, g.meeting_time)}</dd></div>
                       <div className="flex gap-2"><dt className="text-muted">Where</dt><dd>{g.location || "TBD"}</dd></div>
                     </dl>
                     <p className="mt-auto pt-3 text-xs text-muted">

@@ -68,7 +68,7 @@ export async function moderateReport(formData: FormData) {
   const courseId = String(formData.get("courseId") ?? "");
   const reportId = String(formData.get("reportId") ?? "");
   const decision = String(formData.get("decision") ?? "");
-  const supabase = await requireCourseOwner(courseId, user.id);
+  await requireCourseOwner(courseId, user.id);
   if (!UUID.test(reportId) || !["dismissed","removed"].includes(decision)) return;
   const admin = createAdminClient();
   const { data: report } = await admin.from("course_reports").select("*")
@@ -96,9 +96,14 @@ export async function moderateReport(formData: FormData) {
       }
     }
   }
-  const { error } = await admin.from("course_reports").update({
+  // Removed content closes every open report about it, not just this one.
+  let update = admin.from("course_reports").update({
     status: decision as "dismissed" | "removed", reviewed_at: new Date().toISOString(),
-  }).eq("id", reportId).eq("course_id", courseId).eq("status", "open");
+  }).eq("course_id", courseId).eq("status", "open");
+  update = decision === "removed"
+    ? update.eq("target_type", report.target_type).eq("target_id", report.target_id)
+    : update.eq("id", reportId);
+  const { error } = await update;
   if (error) throw new Error("Couldn't update the report.");
   redirect(`/courses/${courseId}/moderation?reviewed=1`);
 }
@@ -146,13 +151,16 @@ export async function acceptCourseInvite(formData: FormData) {
   redirect(`/courses/${data}?joined=1`);
 }
 
+/** Marks a notification read; with open=1, also goes to the page it's about. */
 export async function markNotificationRead(formData: FormData) {
   const user = await requireUser();
   const id = String(formData.get("notificationId") ?? "");
   if (!UUID.test(id)) return;
   const supabase = await createClient();
-  await supabase.from("notifications").update({read_at: new Date().toISOString()})
-    .eq("id", id).eq("user_id", user.id);
+  const { data } = await supabase.from("notifications").update({read_at: new Date().toISOString()})
+    .eq("id", id).eq("user_id", user.id).select("href").maybeSingle();
+  // href is always a site-relative path (enforced by a database check).
+  if (formData.get("open") === "1" && data?.href) redirect(data.href);
   refresh();
 }
 

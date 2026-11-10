@@ -17,7 +17,10 @@ export default async function NotificationsPage(){
   <ol className="space-y-3">{notices.map(n=><li key={n.id}><Card className={!n.read_at?"border-brand/40 bg-brand-soft/40":"opacity-75"}>
    <div className="flex items-start justify-between gap-3"><div className="min-w-0 flex-1">
    <p className="font-semibold">{n.title}</p><p className="mt-1 break-words text-sm text-muted">{n.body}</p><p className="mt-2 text-xs text-muted">{formatDate(n.created_at)}</p>
-   <Link href={n.href} className="mt-2 inline-block text-sm font-medium text-brand hover:underline">Open update</Link>
+   {n.read_at
+    ? <Link href={n.href} className="mt-2 inline-block text-sm font-medium text-brand hover:underline">Open update</Link>
+    : <form action={markNotificationRead}><input type="hidden" name="notificationId" value={n.id}/><input type="hidden" name="open" value="1"/>
+       <button type="submit" className="mt-2 text-sm font-medium text-brand hover:underline">Open update</button></form>}
    </div>{!n.read_at&&<form action={markNotificationRead}><input type="hidden" name="notificationId" value={n.id}/><SubmitButton variant="ghost" size="sm">Mark read</SubmitButton></form>}</div>
   </Card></li>)}</ol>}
  </div>;

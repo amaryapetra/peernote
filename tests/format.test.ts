@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { firstName, formatDate, formatLectureDate, initials, timeAgo, todayISO, wordCount } from "@/lib/format";
+import { firstName, formatDate, formatLectureDate, formatMeetingTime, initials, timeAgo, todayISO, wordCount } from "@/lib/format";
 import { suggestedTerms } from "@/lib/constants";
 
 describe("format helpers", () => {
@@ -29,6 +29,12 @@ describe("format helpers", () => {
   it("gets today's date in New Orleans", () => {
     // 3am UTC on Oct 21 is still Oct 20 in Central time.
     expect(todayISO("America/Chicago", new Date("2026-10-21T03:00:00Z"))).toBe("2026-10-20");
+  });
+
+  it("shows study group meetings in Central time", () => {
+    expect(formatMeetingTime("2026-11-13T01:00:00Z")).toMatch(/^Nov 12, 2026,? 7:00\s?PM CT$/);
+    expect(formatMeetingTime(null)).toBe("TBD");
+    expect(formatMeetingTime(null, "Tuesdays at 6")).toBe("Tuesdays at 6");
   });
 
   it("suggests upcoming terms", () => {

@@ -74,7 +74,7 @@ export async function saveNote(_prev: NoteFormState, formData: FormData): Promis
   const heuristic = screenNoteHeuristically(parsed.data);
   let integrityNote = "";
   if (isAiConfigured()) {
-    const limited = await checkAndRecordUsage(supabase, user.id, "integrity");
+    const limited = await checkAndRecordUsage(supabase, "integrity");
     if (limited) return { error: limited };
     try {
       const verdict = await screenNoteWithAi(

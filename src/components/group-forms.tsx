@@ -7,6 +7,7 @@ import { Field, inputClass } from "./ui";
 
 export function CreateGroupForm({ courseId }: { courseId: string }) {
   const [state, action] = useActionState(createGroup, undefined);
+  // Controlled so the chosen time survives a failed submit (React resets uncontrolled fields).
   const [startsAt, setStartsAt] = useState("");
   return (
     <form action={action} className="space-y-4" noValidate>
@@ -18,16 +19,13 @@ export function CreateGroupForm({ courseId }: { courseId: string }) {
       <Field label="What's the plan?" htmlFor="description" hint="Optional">
         <textarea id="description" name="description" rows={2} maxLength={600} defaultValue={echoed(state, "description")} className={inputClass} placeholder="Working through practice problems from chapters 5 and 6." />
       </Field>
-      <input type="hidden" name="starts_at_iso" value={startsAt} />
+      <input type="hidden" name="starts_at_iso" value={startsAt ? new Date(startsAt).toISOString() : ""} />
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Meeting date and time" htmlFor="meeting-start" hint="Uses your device's local timezone. Optional.">
-          <input id="meeting-start" type="datetime-local" className={inputClass} onChange={(e) => {
-            const value = e.target.value;
-            setStartsAt(value ? new Date(value).toISOString() : "");
-          }} />
+          <input id="meeting-start" type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} className={inputClass} />
         </Field>
         <Field label="Duration" htmlFor="duration">
-          <select id="duration" name="duration_minutes" defaultValue="60" className={inputClass}>
+          <select id="duration" name="duration_minutes" defaultValue={echoed(state, "duration_minutes", "60")} className={inputClass}>
             <option value="30">30 minutes</option><option value="60">1 hour</option><option value="90">90 minutes</option><option value="120">2 hours</option><option value="180">3 hours</option>
           </select>
         </Field>

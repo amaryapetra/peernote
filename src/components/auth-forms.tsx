@@ -28,12 +28,13 @@ export function LoginForm({ next, linkError }: { next?: string; linkError?: bool
   );
 }
 
-export function SignupForm() {
+export function SignupForm({ next }: { next?: string }) {
   const [state, action] = useActionState(signUp, undefined);
   if (state?.success) return <FormMessage state={state} />;
   return (
     <form action={action} className="space-y-4" noValidate>
       <FormMessage state={state} />
+      {next && <input type="hidden" name="next" value={next} />}
       <Field label="Full name" htmlFor="fullName" error={state?.fieldErrors?.fullName}>
         <input id="fullName" name="fullName" autoComplete="name" required defaultValue={echoed(state, "fullName")} className={inputClass} />
       </Field>

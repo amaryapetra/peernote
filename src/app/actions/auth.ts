@@ -41,6 +41,7 @@ const SignupSchema = z.object({
 });
 
 export async function signUp(_prev: FormState, formData: FormData): Promise<FormState> {
+  const next = safeNext(formData.get("next"), "/profile?welcome=1");
   const values = { fullName: String(formData.get("fullName") ?? ""), email: String(formData.get("email") ?? "") };
   const parsed = SignupSchema.safeParse({
     fullName: formData.get("fullName"),
@@ -57,7 +58,7 @@ export async function signUp(_prev: FormState, formData: FormData): Promise<Form
     password: parsed.data.password,
     options: {
       data: { full_name: parsed.data.fullName },
-      emailRedirectTo: `${await siteOrigin()}/auth/confirm?next=${encodeURIComponent("/profile?welcome=1")}`,
+      emailRedirectTo: `${await siteOrigin()}/auth/confirm?next=${encodeURIComponent(next)}`,
     },
   });
 
@@ -73,7 +74,7 @@ export async function signUp(_prev: FormState, formData: FormData): Promise<Form
   if (!data.session) {
     return { success: `Almost there! We sent a confirmation link to ${parsed.data.email}.` };
   }
-  redirect("/profile?welcome=1");
+  redirect(next);
 }
 
 const LoginSchema = z.object({

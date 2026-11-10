@@ -50,7 +50,7 @@ export default async function MaterialsPage({ params, searchParams }: PageProps<
       </header>
       <form role="search" className="flex max-w-md gap-2">
         <label htmlFor="material-search" className="sr-only">Search class materials</label>
-        <input id="material-search" name="q" defaultValue={q} placeholder="Search files and titles" className="h-10 min-w-0 flex-1 rounded-lg border border-line bg-surface px-3 text-sm"/>
+        <input id="material-search" name="q" defaultValue={q} placeholder="Search by title" className="h-10 min-w-0 flex-1 rounded-lg border border-line bg-surface px-3 text-sm"/>
         <button type="submit" className="rounded-lg bg-brand px-4 text-sm font-medium text-on-brand">Search</button>
       </form>
       <div className="flex items-center justify-between gap-2 text-sm text-muted">

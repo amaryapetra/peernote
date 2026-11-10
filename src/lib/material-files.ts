@@ -1,5 +1,6 @@
-// File-type helpers for class materials. Any file type can be shared; only PDFs
-// and common images are shown in the browser, everything else is downloaded.
+// File-type helpers for class materials. Only PDFs and common images are shown
+// in the browser; everything else is downloaded. Which files can be uploaded at
+// all is decided in upload-security.ts.
 
 /** Types that open in the browser. The upload route only stores these when the bytes really are that type. */
 export const INLINE_TYPES: Record<string, string> = {
@@ -39,22 +40,4 @@ const KINDS: [RegExp, string][] = [
 export function fileKindLabel(fileType: string | null): string {
   if (!fileType) return "Canvas / link";
   return KINDS.find(([pattern]) => pattern.test(fileType))?.[1] ?? (fileType === "file" ? "File" : fileType.toUpperCase());
-}
-
-// Programs and installers could spread malware between classmates, so they're refused.
-const BLOCKED_EXTENSIONS = new Set([
-  "exe", "msi", "msix", "bat", "cmd", "com", "scr", "pif", "cpl", "msc", "hta", "lnk", "reg", "vbs", "vbe",
-  "wsf", "wsh", "ps1", "psm1", "jar", "apk", "dmg", "pkg", "app", "deb", "rpm", "dll", "sys", "appimage",
-]);
-
-/** True for programs: blocked by extension, or by the bytes of Windows, Linux, and Mac executables. */
-export function isExecutable(name: string, data: Uint8Array): boolean {
-  if (BLOCKED_EXTENSIONS.has(fileExtension(name))) return true;
-  if (data.length > 0x40 && data[0] === 0x4d && data[1] === 0x5a) { // Windows "MZ" header pointing to "PE\0\0"
-    const pe = new DataView(data.buffer, data.byteOffset, data.byteLength).getUint32(0x3c, true);
-    if (pe + 4 <= data.length && data[pe] === 0x50 && data[pe + 1] === 0x45 && data[pe + 2] === 0 && data[pe + 3] === 0) return true;
-  }
-  if (data[0] === 0x7f && data[1] === 0x45 && data[2] === 0x4c && data[3] === 0x46) return true; // Linux ELF
-  const magic = data.length >= 4 ? ((data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3]) >>> 0 : 0;
-  return [0xfeedface, 0xfeedfacf, 0xcefaedfe, 0xcffaedfe].includes(magic); // Mac Mach-O
 }

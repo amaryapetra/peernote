@@ -19,14 +19,13 @@ Live site: https://peernote-eta.vercel.app
 | Ask the notes (AI) | `/courses/[id]/ask` | Postgres full-text search finds relevant notes; Claude answers with citations, or says the notes don't cover it. |
 | Study partners | `/partners`, course Classmates tab | Classmates ranked by shared courses, overlapping free time, and study style. Contact info is revealed only after both people agree. |
 | Study groups | course Study groups tab, `/groups/[id]` | Create or join a capped-size group with a time, place, and members-only message board. |
-| Video study room | `/courses/[id]/video` | Temporarily disabled. An access-controlled video provider is required before re-enabling private calls. |
 | Notifications | `/notifications` | Private in-app alerts for new course notes, accepted study partner requests, group messages, and meeting reminders. |
 | Course moderation | `/courses/[id]/moderation` | Course creators review content reports, remove inappropriate content, block unauthorized students and rotate private invite links. |
 | Course invite links | `/join/[code]` | Classmates join from a shareable link after signing into PeerNote with a valid Tulane account. |
 
-## Video-room security
+## Video calls
 
-The former embedded Jitsi room is paused. A Jitsi meeting URL is not protected by Supabase course membership and can be shared outside PeerNote. The old `course_video_rooms` records are preserved, but their meeting URLs are not shown or joined from the site. Private video calls need a provider that authenticates each participant (for example, an access-token-secured video service) before the feature can return.
+PeerNote has no video calls. An earlier embedded Jitsi room was removed because a Jitsi meeting URL isn't protected by course membership and can be shared outside PeerNote. The old `course_video_rooms` table is kept in the database but isn't used. Bringing calls back needs a provider that authenticates each participant.
 
 ## Security and rollout considerations
 
@@ -34,8 +33,9 @@ The former embedded Jitsi room is paused. A Jitsi meeting URL is not protected b
 - **Integrity screening:** Keyword checks always run. When an Anthropic key is configured, the entire note also receives AI screening; an AI outage prevents saving. Without an AI key, only keyword scanning runs and may miss prohibited content. No automated screen guarantees compliance with a school honor code.
 - **AI usage:** Apply every migration (including `20261027000000_atomic_ai_quota.sql`) before deploying the matching app code. AI quotas are reserved atomically in Postgres.
 - **Invite-code rollout:** Apply `20261029160000_secure_course_invites.sql` with the corresponding app release. It rotates previously exposed six-character codes to twelve characters and blocks direct enrollments. Existing members retain access; old shared codes stop working. The app does not collect Canvas screenshots.
-- **Class materials rollout:** Apply `supabase/migrations/20261029170000_course_materials.sql` before deploying this version. File uploads use a private `course-materials` Storage bucket with course-members-only read access; uploads and deletions are performed server-side after membership checks. An uploader must confirm they have permission to share. Apply `20261029190000_materials_any_file_type.sql` before deploying the any-file-type release; it widens the allowed file types. Only real PDFs and images open in the browser; every other file is stored as a generic download so an uploaded web page or script can't run for classmates. Only opt-in extracted text is available for AI; Canvas links are never fetched.
+- **Class materials rollout:** Apply `supabase/migrations/20261029170000_course_materials.sql` before deploying this version. File uploads use a private `course-materials` Storage bucket with course-members-only read access; uploads and deletions are performed server-side after membership checks. An uploader must confirm they have permission to share. Also apply `20261029190000_materials_any_file_type.sql`, which lets the database accept any file extension; the app itself only accepts the formats listed under File upload protections below. Only real PDFs and images open in the browser; every other file is stored as a generic download so an uploaded web page or script can't run for classmates. Only opt-in extracted text is available for AI; Canvas links are never fetched.
 - **Pilot upgrade:** Apply `20261108000000_student_safety.sql` and `20261108001000_group_reminders.sql` to Supabase before deploying the matching app. These create in-app notifications, course reporting and moderation, join bans, upload-rate reservations, structured study group meetings and RSVP reminders. Existing content and accounts are kept.
+- **Study group meeting fixes:** Apply `20261110000000_group_meeting_fixes.sql`. It lets organizers set and change meeting times (previously blocked by a missing column permission) and stops meeting reminders for students who left the group.
 - **Privacy:** Avoid uploading private or instructor-restricted content. Test with multiple accounts and live Supabase/Anthropic before a public launch.
 
 ## Tech stack and architecture
