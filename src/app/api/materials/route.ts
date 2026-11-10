@@ -10,6 +10,7 @@ import { prepareNoteImport } from "@/lib/note-import";
 import { screenNoteHeuristically } from "@/lib/integrity";
 import { MATERIALS_BUCKET, UUID, stagingPath } from "@/lib/material-upload";
 
+// Large files are downloaded from staging, checked, and stored again.
 export const maxDuration = 60;
 
 function fail(error: string, status: number) { return NextResponse.json({ error }, { status }); }
