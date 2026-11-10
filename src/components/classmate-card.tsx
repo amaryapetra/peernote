@@ -71,9 +71,14 @@ export function ClassmateCard({ classmate, courseId }: { classmate: Classmate; c
         {connection.kind === "sent" && <p className="text-sm text-muted">Request sent. Waiting for {name.split(" ")[0]} to respond.</p>}
         {connection.kind === "declined" && <p className="text-sm text-muted">Not connected.</p>}
         {connection.kind === "connected" && (
-          <ButtonLink href="/partners#connections" variant="secondary" size="sm">
-            Connected · see contact info
-          </ButtonLink>
+          <div className="flex flex-wrap gap-2">
+            <ButtonLink href={`/messages/${profile.id}`} size="sm">
+              Message
+            </ButtonLink>
+            <ButtonLink href="/partners#connections" variant="secondary" size="sm">
+              Contact info
+            </ButtonLink>
+          </div>
         )}
         {connection.kind === "received" && (
           <div className="space-y-2">

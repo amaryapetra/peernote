@@ -92,6 +92,30 @@ select pg_temp.check((select count(*) from connections) = 0, 'outsider cannot se
 select pg_temp.check((select count(*) from contact_cards) = 1, 'outsider sees only own contact');
 reset role;
 
+-- Direct messages: only accepted study partners (A and B) can message.
+select pg_temp.act('00000000-0000-0000-0000-00000000000b');
+insert into direct_messages (sender_id, recipient_id, body) values
+ (auth.uid(), '00000000-0000-0000-0000-00000000000a', 'Library at 7 tonight?');
+insert into direct_messages (sender_id, recipient_id, body) values
+ (auth.uid(), '00000000-0000-0000-0000-00000000000a', 'I can bring my eigenvalue notes.');
+select pg_temp.check((select count(*) from direct_messages) = 2, 'partner can send and read own messages');
+select pg_temp.expect_fail($q$insert into direct_messages (sender_id, recipient_id, body) values ('00000000-0000-0000-0000-00000000000a','00000000-0000-0000-0000-00000000000b','spoofed')$q$, 'cannot send a message as someone else');
+select pg_temp.expect_fail($q$insert into direct_messages (sender_id, recipient_id, body) values (auth.uid(),'00000000-0000-0000-0000-00000000000c','hi')$q$, 'cannot message someone who is not a partner');
+select pg_temp.expect_fail($q$insert into direct_messages (sender_id, recipient_id, body) values (auth.uid(),'00000000-0000-0000-0000-00000000000a','   ')$q$, 'blank messages rejected');
+with u as (update direct_messages set read_at = now() returning 1) select pg_temp.check((select count(*) from u) = 0, 'sender cannot mark own messages read');
+select pg_temp.expect_fail($q$update direct_messages set body = 'edited'$q$, 'messages cannot be edited (column grant)');
+reset role;
+select pg_temp.act('00000000-0000-0000-0000-00000000000a');
+select pg_temp.check((select count(*) from direct_messages where read_at is null) = 2, 'recipient sees unread messages');
+select pg_temp.check((select count(*) from notifications where kind = 'direct_message') = 1, 'one notification per unread conversation, not per message');
+with u as (update direct_messages set read_at = now() where recipient_id = auth.uid() returning 1) select pg_temp.check((select count(*) from u) = 2, 'recipient marks messages read');
+insert into direct_messages (sender_id, recipient_id, body) values (auth.uid(), '00000000-0000-0000-0000-00000000000b', 'See you there!');
+reset role;
+select pg_temp.act('00000000-0000-0000-0000-00000000000c');
+select pg_temp.check((select count(*) from direct_messages) = 0, 'outsider cannot read anyone''s messages');
+select pg_temp.check(not has_table_privilege('anon', 'public.direct_messages', 'SELECT'), 'anonymous cannot read messages');
+reset role;
+
 -- Study groups with capacity 2
 select pg_temp.act('00000000-0000-0000-0000-00000000000a');
 insert into study_groups (id, course_id, name, capacity, created_by) values
@@ -287,6 +311,12 @@ reset role;
 select pg_temp.check((select count(*) from group_rsvps where user_id='00000000-0000-0000-0000-00000000000c')=0,'leaving a group clears the RSVP');
 set role service_role;
 select pg_temp.check(public.enqueue_group_reminders()=0,'former member gets no reminder');
+reset role;
+-- Removing a study partner stops new messages but keeps the history private to the pair.
+select pg_temp.act('00000000-0000-0000-0000-00000000000a');
+delete from connections where id='30000000-0000-0000-0000-000000000001';
+select pg_temp.expect_fail($q$insert into direct_messages (sender_id, recipient_id, body) values (auth.uid(),'00000000-0000-0000-0000-00000000000b','still there?')$q$, 'cannot message after removing the partner');
+select pg_temp.check((select count(*) from direct_messages) = 3, 'past conversation still visible to its two members');
 reset role;
 \echo ALL_RLS_TESTS_PASSED
 

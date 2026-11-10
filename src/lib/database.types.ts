@@ -18,8 +18,8 @@ export type Database = {
   public: {
     Tables: {
       notifications: {
-        Row: { id: string; user_id: string; actor_id: string | null; kind: "new_note" | "partner_accepted" | "group_message" | "moderation" | "meeting_reminder"; title: string; body: string; href: string; read_at: string | null; created_at: string };
-        Insert: { user_id: string; actor_id?: string | null; kind: "new_note" | "partner_accepted" | "group_message" | "moderation" | "meeting_reminder"; title: string; body?: string; href: string; read_at?: string | null };
+        Row: { id: string; user_id: string; actor_id: string | null; kind: "new_note" | "partner_accepted" | "group_message" | "moderation" | "meeting_reminder" | "direct_message"; title: string; body: string; href: string; read_at: string | null; created_at: string };
+        Insert: { user_id: string; actor_id?: string | null; kind: "new_note" | "partner_accepted" | "group_message" | "moderation" | "meeting_reminder" | "direct_message"; title: string; body?: string; href: string; read_at?: string | null };
         Update: { read_at?: string | null };
         Relationships: [Rel<"notifications_user_id_fkey", "user_id", "profiles">, Rel<"notifications_actor_id_fkey","actor_id","profiles">];
       };
@@ -267,6 +267,15 @@ export type Database = {
         Relationships: [
           Rel<"group_posts_group_id_fkey", "group_id", "study_groups">,
           Rel<"group_posts_author_id_fkey", "author_id", "profiles">,
+        ];
+      };
+      direct_messages: {
+        Row: { id: string; sender_id: string; recipient_id: string; body: string; read_at: string | null; created_at: string };
+        Insert: { sender_id: string; recipient_id: string; body: string };
+        Update: { read_at?: string | null };
+        Relationships: [
+          Rel<"direct_messages_sender_id_fkey", "sender_id", "profiles">,
+          Rel<"direct_messages_recipient_id_fkey", "recipient_id", "profiles">,
         ];
       };
       connections: {

@@ -41,7 +41,7 @@ export default async function PartnersPage() {
     <div className="space-y-12">
       <PageHeader
         title="Study partners"
-        description="Connect with classmates who share your courses, schedule, and study style. Contact info is shared only after both of you agree."
+        description="Connect with classmates who share your courses, schedule, and study style. Once both of you agree, you can message each other and see contact info."
       />
 
       <section id="requests" aria-labelledby="requests-heading" className="scroll-mt-24">
@@ -95,7 +95,7 @@ export default async function PartnersPage() {
       <section id="connections" aria-labelledby="connections-heading" className="scroll-mt-24">
         <h2 id="connections-heading" className="mb-4 font-display text-xl font-semibold">Your study partners</h2>
         {accepted.length === 0 ? (
-          <EmptyState title="No study partners yet">Send a request to someone below. Once they accept, you&apos;ll both see each other&apos;s contact info here.</EmptyState>
+          <EmptyState title="No study partners yet">Send a request to someone below. Once they accept, you can message each other in PeerNote and see each other&apos;s contact info here.</EmptyState>
         ) : (
           <ul className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {accepted.map((c) => {
@@ -116,12 +116,17 @@ export default async function PartnersPage() {
                       <span className="text-muted">Contact: </span>
                       <span className="break-all font-medium text-ink">{contact || "They haven't added contact info yet."}</span>
                     </div>
-                    <form action={removeConnection} className="mt-auto">
-                      <input type="hidden" name="connectionId" value={c.id} />
-                      <SubmitButton size="sm" variant="ghost" pendingText="Removing…">
-                        Remove
-                      </SubmitButton>
-                    </form>
+                    <div className="mt-auto flex flex-wrap gap-2">
+                      <ButtonLink href={`/messages/${other.id}`} size="sm">
+                        Message
+                      </ButtonLink>
+                      <form action={removeConnection}>
+                        <input type="hidden" name="connectionId" value={c.id} />
+                        <SubmitButton size="sm" variant="ghost" pendingText="Removing…">
+                          Remove
+                        </SubmitButton>
+                      </form>
+                    </div>
                   </Card>
                 </li>
               );
