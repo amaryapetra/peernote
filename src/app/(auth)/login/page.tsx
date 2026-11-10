@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { LoginForm } from "@/components/auth-forms";
+import { ButtonLink } from "@/components/ui";
 
 export const metadata: Metadata = {
   title: "Log in",
@@ -23,6 +24,11 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
       <Suspense fallback={<LoginForm />}>
         <Form searchParams={searchParams} />
       </Suspense>
+      <section aria-labelledby="login-help-heading" className="mt-6 rounded-xl border border-line bg-surface-2 p-4">
+        <h2 id="login-help-heading" className="font-medium">Trouble logging in?</h2>
+        <p className="mb-3 mt-1 text-sm text-muted">Forgot your password? Get an email link to choose a new one.</p>
+        <ButtonLink href="/forgot-password" variant="secondary" className="w-full">Forgot password?</ButtonLink>
+      </section>
       <p className="mt-6 text-center text-sm text-muted">
         New to PeerNote?{" "}
         <Link href="/signup" className="font-medium text-brand hover:underline">
