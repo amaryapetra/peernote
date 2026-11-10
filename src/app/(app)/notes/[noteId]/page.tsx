@@ -8,7 +8,7 @@ import { ReportContentForm } from "@/components/report-content-form";
 import { GapResultView } from "@/components/ai-results";
 import { SubmitButton } from "@/components/form";
 import { Markdown } from "@/components/markdown";
-import { Alert, Avatar, Badge, ButtonLink, Card, cx } from "@/components/ui";
+import { Alert, Avatar, Badge, ButtonLink, Card } from "@/components/ui";
 import { isAiConfigured } from "@/lib/ai/client";
 import type { GapResult } from "@/lib/ai/gaps";
 import { requireUser } from "@/lib/auth";
@@ -172,13 +172,15 @@ export default async function NotePage({ params, searchParams }: PageProps<"/not
             </ul>
           )}
         </Card>
-        <Card className={cx(!isAuthor ? "" : "hidden")}>
-          <h2 className="text-sm font-semibold">Were you in this class?</h2>
-          <p className="mt-1 text-sm text-muted">Share your notes too, then compare them with everyone else&apos;s.</p>
-          <ButtonLink href={`/courses/${note.course_id}/notes/new?date=${note.lecture_date}`} size="sm" className="mt-3">
-            Share my notes
-          </ButtonLink>
-        </Card>
+        {!isAuthor && (
+          <Card>
+            <h2 className="text-sm font-semibold">Were you in this class?</h2>
+            <p className="mt-1 text-sm text-muted">Share your notes too, then compare them with everyone else&apos;s.</p>
+            <ButtonLink href={`/courses/${note.course_id}/notes/new?date=${note.lecture_date}`} size="sm" className="mt-3">
+              Share my notes
+            </ButtonLink>
+          </Card>
+        )}
         <Card>
           <h2 className="text-sm font-semibold">Missed this class?</h2>
           <p className="mt-1 text-sm text-muted">Get one study guide built from every classmate&apos;s notes.</p>

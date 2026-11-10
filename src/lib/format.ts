@@ -41,3 +41,17 @@ export function wordCount(text: string): number {
 export function todayISO(timeZone = "America/Chicago", now = new Date()): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
 }
+
+/**
+ * "Nov 12, 2026, 7:00 PM CT" for a study group's scheduled meeting. Older groups
+ * only have a free-text time, passed as `legacyText`.
+ */
+export function formatMeetingTime(startsAt: string | null, legacyText = ""): string {
+  if (!startsAt) return legacyText || "TBD";
+  const label = new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "America/Chicago",
+  }).format(new Date(startsAt));
+  return `${label} CT`;
+}

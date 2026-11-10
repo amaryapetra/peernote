@@ -6,7 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { isAiConfigured, friendlyAiError } from "@/lib/ai/client";
 import { validateClassMaterial, verifyExternalMalwareScan } from "@/lib/upload-security";
 import { extractMaterialTextForAi, MATERIAL_TEXT_LIMIT } from "@/lib/material-text";
-import { INLINE_TYPES, fileExtension, isExecutable, isInlineType } from "@/lib/material-files";
+import { INLINE_TYPES, fileExtension, isInlineType } from "@/lib/material-files";
 import { prepareNoteImport } from "@/lib/note-import";
 import { screenNoteHeuristically } from "@/lib/integrity";
 import { checkAndRecordUsage } from "@/lib/ai/usage";
@@ -43,7 +43,6 @@ export async function POST(request: NextRequest) {
   if (!member) return fail("Join this course before sharing materials.", 403);
 
   const bytes = Buffer.from(await file.arrayBuffer());
-  if (isExecutable(file.name, bytes)) return fail("Programs and installers can't be shared. Upload the class material itself.", 415);
   const unsafeReason = validateClassMaterial(file.name, bytes);
   if (unsafeReason) return fail(unsafeReason, 415);
   try { await verifyExternalMalwareScan(bytes, file.name); }
@@ -65,7 +64,7 @@ export async function POST(request: NextRequest) {
   try {
     if (prepared.kind === "ai" && wantsAi) {
       if (!isAiConfigured()) return fail("AI reading isn't set up yet. Uncheck the AI box to upload this file.", 503);
-      const usageError = await checkAndRecordUsage(supabase, user.id, "transcribe");
+      const usageError = await checkAndRecordUsage(supabase, "transcribe");
       if (usageError) return fail(usageError, 429);
       text = await extractMaterialTextForAi(bytes, prepared.mediaType);
       if (text === "NOT_LECTURE_MATERIAL") return fail("Assessments or answer keys can't be shared.", 422);

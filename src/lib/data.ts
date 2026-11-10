@@ -32,10 +32,6 @@ export const getCourse = cache(async (courseId: string) => {
   return { course, enrolled: Boolean(enrollment), user, supabase };
 });
 
-export function courseLabel(course: { code: string; title: string }): string {
-  return `${course.code}: ${course.title}`;
-}
-
 /** Titles and authors for notes an AI result cites, keyed by note ID. */
 export async function getSourceNotes(ids: string[]) {
   const map = new Map<string, { id: string; title: string; author: string; href: string }>();

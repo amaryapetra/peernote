@@ -244,12 +244,16 @@ select pg_temp.act('00000000-0000-0000-0000-00000000000b');
 select pg_temp.expect_fail($q$select public.join_course_by_code('ABCDEF123456')$q$, 'banned user denied invite'); 
 reset role;
 select pg_temp.check(not has_function_privilege('authenticated','public.enqueue_group_reminders()','EXECUTE'), 'client cannot send reminders for others');
--- An actual group RSVP triggers at most one reminder per window.
-set role service_role;
-update public.study_groups set meeting_starts_at=now()+interval '60 minutes',
- meeting_ends_at=now()+interval '120 minutes';
+-- Only the organizer can schedule the group's meeting.
+select pg_temp.act('00000000-0000-0000-0000-00000000000c');
+update public.study_groups set meeting_starts_at=now()+interval '3 hours', meeting_ends_at=now()+interval '4 hours';
+select pg_temp.check((select meeting_starts_at from study_groups limit 1) is null, 'non-organizer cannot schedule a meeting');
 reset role;
+-- An actual group RSVP triggers at most one reminder per window.
 select pg_temp.act('00000000-0000-0000-0000-00000000000a');
+update public.study_groups set meeting_starts_at=now()+interval '60 minutes',
+ meeting_ends_at=now()+interval '120 minutes' where created_by=auth.uid();
+select pg_temp.check((select count(*) from study_groups where meeting_starts_at is not null)=1, 'organizer schedules a meeting');
 insert into group_rsvps(group_id,user_id,status)
 select g.id,auth.uid(),'going' from study_groups g limit 1;
 select pg_temp.check((select count(*) from group_rsvps where user_id=auth.uid())=1,'organizer can RSVP');
@@ -264,6 +268,16 @@ select pg_temp.check(public.enqueue_group_reminders()=0,'reminder deduplicated o
 reset role;
 select pg_temp.act('00000000-0000-0000-0000-00000000000a');
 select pg_temp.check((select count(*) from notifications where kind='meeting_reminder')=1,'upcoming meeting delivered to attendee inbox');
+reset role;
+-- Leaving a group clears the RSVP, so former members get no reminders.
+select pg_temp.act('00000000-0000-0000-0000-00000000000c');
+insert into group_members(group_id,user_id) values ('40000000-0000-0000-0000-000000000001',auth.uid());
+insert into group_rsvps(group_id,user_id,status) values ('40000000-0000-0000-0000-000000000001',auth.uid(),'going');
+delete from group_members where group_id='40000000-0000-0000-0000-000000000001' and user_id=auth.uid();
+reset role;
+select pg_temp.check((select count(*) from group_rsvps where user_id='00000000-0000-0000-0000-00000000000c')=0,'leaving a group clears the RSVP');
+set role service_role;
+select pg_temp.check(public.enqueue_group_reminders()=0,'former member gets no reminder');
 reset role;
 \echo ALL_RLS_TESTS_PASSED
 

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getViewer } from "@/lib/auth";
 import { getMyCourses } from "@/lib/data";
-import { firstName, formatDate, formatLectureDate } from "@/lib/format";
+import { firstName, formatDate, formatLectureDate, formatMeetingTime } from "@/lib/format";
 import { Avatar, Badge, ButtonLink, Card, EmptyState, PageHeader } from "@/components/ui";
 
 export const metadata: Metadata = { title: "Dashboard" };
@@ -45,7 +45,7 @@ export default async function DashboardPage() {
       .then((r) => r.data ?? []),
     supabase
       .from("group_members")
-      .select("group:study_groups(id, name, meeting_time, course_id, members_count, capacity)")
+      .select("group:study_groups(id, name, meeting_time, meeting_starts_at, course_id, members_count, capacity)")
       .eq("user_id", user.id)
       .limit(6)
       .then((r) => (r.data ?? []).flatMap((row) => (row.group ? [row.group] : []))),
@@ -306,7 +306,7 @@ export default async function DashboardPage() {
                     <Link href={`/groups/${g.id}`} className="block rounded-xl border border-line bg-surface p-3 hover:border-brand/40">
                       <p className="font-medium">{g.name}</p>
                       <p className="text-sm text-muted">
-                        {courseById.get(g.course_id)?.code} · {g.meeting_time || "Time TBD"} · {g.members_count}/{g.capacity}
+                        {courseById.get(g.course_id)?.code} · {formatMeetingTime(g.meeting_starts_at, g.meeting_time)} · {g.members_count}/{g.capacity}
                       </p>
                     </Link>
                   </li>

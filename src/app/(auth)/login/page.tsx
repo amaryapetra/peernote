@@ -15,6 +15,20 @@ async function Form({ searchParams }: { searchParams: PageProps<"/login">["searc
   return <LoginForm next={next} linkError={params.error === "link"} />;
 }
 
+function SignupLink({ href }: { href: string }) {
+  return (
+    <Link href={href} className="font-medium text-brand hover:underline">
+      Create an account
+    </Link>
+  );
+}
+
+/** Keeps ?next (like a course invite link) when switching to sign up. */
+async function SignupLinkWithNext({ searchParams }: { searchParams: PageProps<"/login">["searchParams"] }) {
+  const { next } = await searchParams;
+  return <SignupLink href={typeof next === "string" ? `/signup?next=${encodeURIComponent(next)}` : "/signup"} />;
+}
+
 export default function LoginPage({ searchParams }: PageProps<"/login">) {
   return (
     <>
@@ -25,9 +39,9 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
       </Suspense>
       <p className="mt-6 text-center text-sm text-muted">
         New to PeerNote?{" "}
-        <Link href="/signup" className="font-medium text-brand hover:underline">
-          Create an account
-        </Link>
+        <Suspense fallback={<SignupLink href="/signup" />}>
+          <SignupLinkWithNext searchParams={searchParams} />
+        </Suspense>
       </p>
     </>
   );

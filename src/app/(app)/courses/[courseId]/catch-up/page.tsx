@@ -100,7 +100,7 @@ export default async function CatchUpPage({ params, searchParams }: PageProps<"/
           </div>
           <p className="mt-1 text-sm text-muted">
             {info.count} shared note{info.count === 1 ? "" : "s"} or approved slide source{info.count === 1 ? "" : "s"} from this class
-            {info.mine ? ", including yours." : ". You don't have notes for this day."}
+            {info.mine ? ", including yours." : ". You don't have notes for this day."}{" "}
             The guide uses up to eight notes and four approved slide files.
           </p>
           <div className="mt-4">

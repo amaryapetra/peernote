@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { deleteGroup, joinGroup, leaveGroup, rsvpToGroup, rescheduleGroup } from "@/app/actions/groups";
+import { deleteGroup, joinGroup, leaveGroup, rsvpToGroup } from "@/app/actions/groups";
 import { SubmitButton } from "@/components/form";
 import { GroupPostForm } from "@/components/group-forms";
 import { MeetingEditor } from "@/components/meeting-editor";
 import { ReportContentForm } from "@/components/report-content-form";
 import { Alert, Avatar, Card, EmptyState, buttonClass } from "@/components/ui";
 import { requireUser } from "@/lib/auth";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatMeetingTime } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Study group" };
@@ -49,9 +49,7 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/gr
   const myRsvp = (rsvps??[]).find(r=>r.user_id===user.id)?.status;
   const counts = { going: (rsvps??[]).filter(r=>r.status==="going").length,
     maybe: (rsvps??[]).filter(r=>r.status==="maybe").length };
-  const meetingLabel = group.meeting_starts_at
-    ? new Intl.DateTimeFormat("en-US",{dateStyle:"medium",timeStyle:"short",timeZone:"America/Chicago"}).format(new Date(group.meeting_starts_at)) + " CT"
-    : group.meeting_time || "TBD";
+  const meetingLabel = formatMeetingTime(group.meeting_starts_at, group.meeting_time);
 
   return (
     <div className="space-y-8">
@@ -116,8 +114,9 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/gr
         </div>
       </header>
 
-      {group.meeting_starts_at && isMember && (
+      {isMember && (group.meeting_starts_at || isCreator) && (
         <Card><h2 className="font-display text-lg font-semibold">Meeting RSVP</h2>
+        {group.meeting_starts_at ? (<>
         <p className="my-2 text-sm text-muted">{counts.going} going · {counts.maybe} maybe</p>
         <div className="flex flex-wrap gap-2">
           {(["going","maybe","not_going"] as const).map(status=>(
@@ -130,7 +129,10 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/gr
           ))}
           <Link href={`/api/groups/${group.id}/calendar`} className={buttonClass("secondary","sm")}>Add to calendar (.ics)</Link>
         </div>
-        {isCreator && <MeetingEditor groupId={group.id}/>}
+        </>) : (
+          <p className="my-2 text-sm text-muted">No meeting time yet. Set one so members can RSVP and get reminders.</p>
+        )}
+        {isCreator && <MeetingEditor groupId={group.id} scheduled={Boolean(group.meeting_starts_at)}/>}
         </Card>
       )}
       <div className="grid gap-8 lg:grid-cols-[1fr_18rem]">

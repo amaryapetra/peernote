@@ -18,6 +18,9 @@ export default async function ModerationPage({params,searchParams}:PageProps<"/c
  const postIds=(reports??[]).filter(r=>r.target_type==="post").map(r=>r.target_id);
  const {data:reportPosts}=postIds.length?await admin.from("group_posts").select("id,group_id").in("id",postIds):{data:[]};
  const postLinkById=new Map((reportPosts??[]).map(p=>[p.id,`/groups/${p.group_id}#post-${p.id}`]));
+ const banIds=(bans??[]).map(b=>b.user_id);
+ const {data:bannedProfiles}=banIds.length?await admin.from("profiles").select("id,full_name").in("id",banIds):{data:[]};
+ const bannedName=new Map((bannedProfiles??[]).map(p=>[p.id,p.full_name]));
  return <div className="space-y-9"><nav className="text-sm text-muted"><Link href={`/courses/${courseId}`} className="hover:text-brand">{course.code}</Link> / Moderation</nav>
  <PageHeader title="Course moderation" description="Review reports, manage who can access your course, and reset invitations."/>
  {sp.reviewed==="1"&&<Alert tone="success">Report reviewed.</Alert>}
@@ -37,7 +40,7 @@ export default async function ModerationPage({params,searchParams}:PageProps<"/c
  {m.user_id!==user.id&&<form action={removeCourseMember}><input type="hidden" name="courseId" value={courseId}/><input type="hidden" name="memberId" value={m.user_id}/><SubmitButton variant="danger" size="sm">Remove</SubmitButton></form>}</li>)}</ul></Card>
  <Card><h2 className="font-display text-xl font-semibold">Invites and bans</h2><p className="my-3 text-sm text-muted">Reset the invite code when it is shared beyond your classmates. Old links will stop working.</p>
  <form action={rotateCourseCode}><input type="hidden" name="courseId" value={courseId}/><SubmitButton variant="secondary" size="sm">Regenerate invite</SubmitButton></form>
- <h3 className="mb-2 mt-5 font-semibold">Banned students</h3>{!bans?.length?<p className="text-sm text-muted">None.</p>:<ul className="space-y-2">{bans.map(b=><li key={b.user_id} className="flex items-center justify-between gap-2"><span className="font-mono text-xs">{b.user_id.slice(0,8)}…</span><form action={unbanCourseMember}><input type="hidden" name="courseId" value={courseId}/><input type="hidden" name="memberId" value={b.user_id}/><SubmitButton variant="secondary" size="sm">Unblock</SubmitButton></form></li>)}</ul>}
+ <h3 className="mb-2 mt-5 font-semibold">Banned students</h3>{!bans?.length?<p className="text-sm text-muted">None.</p>:<ul className="space-y-2">{bans.map(b=><li key={b.user_id} className="flex items-center justify-between gap-2"><span className="text-sm">{bannedName.get(b.user_id)||"Former member"}</span><form action={unbanCourseMember}><input type="hidden" name="courseId" value={courseId}/><input type="hidden" name="memberId" value={b.user_id}/><SubmitButton variant="secondary" size="sm">Unblock</SubmitButton></form></li>)}</ul>}
  </Card></div>
  </div>;
 }

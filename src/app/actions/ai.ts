@@ -52,7 +52,7 @@ export async function runGapCheck(_prev: AiFormState, formData: FormData): Promi
     return { error: "No classmates have shared notes or AI-approved slides for this lecture yet." };
   }
 
-  const limited = await checkAndRecordUsage(supabase, user.id, "gap_fill");
+  const limited = await checkAndRecordUsage(supabase, "gap_fill");
   if (limited) return { error: limited };
 
   try {
@@ -106,7 +106,7 @@ export async function runCatchUp(_prev: AiFormState, formData: FormData): Promis
   const references: PromptNote[] = [...(notes ?? []), ...approvedMaterials];
   if (!references.length) return { error: "No notes or AI-approved slides for that day yet." };
 
-  const limited = await checkAndRecordUsage(supabase, user.id, "catch_up");
+  const limited = await checkAndRecordUsage(supabase, "catch_up");
   if (limited) return { error: limited };
 
   let insightId: string | undefined;
@@ -168,7 +168,7 @@ export async function askNotes(_prev: AiFormState, formData: FormData): Promise<
   const references: PromptNote[] = [...(notes ?? []), ...approvedMaterials];
   if (!references.length) return { error: "This course has no notes or AI-approved slides yet." };
 
-  const limited = await checkAndRecordUsage(supabase, user.id, "ask");
+  const limited = await checkAndRecordUsage(supabase, "ask");
   if (limited) return { error: limited };
 
   try {

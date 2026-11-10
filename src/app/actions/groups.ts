@@ -7,12 +7,24 @@ import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { FormState } from "@/components/form";
 
+const MEETING_DURATIONS = [30, 60, 90, 120, 180];
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** A meeting start time between now and two years out, or an error message. */
+function meetingStart(iso: string): Date | string {
+  const starts = new Date(iso);
+  const t = starts.getTime();
+  if (!Number.isFinite(t) || t < Date.now() - 60_000 || t > Date.now() + 2 * 365 * 86_400_000) {
+    return "Choose a future meeting date within two years.";
+  }
+  return starts;
+}
+
 const GroupSchema = z.object({
   name: z.string().trim().min(2, "Name your group.").max(80),
   description: z.string().trim().max(600),
-  meeting_time: z.string().trim().max(120),
   starts_at_iso: z.string().trim().max(40),
-  duration_minutes: z.coerce.number().int().min(30).max(240),
+  duration_minutes: z.coerce.number().int().refine((d) => MEETING_DURATIONS.includes(d), "Pick a meeting length."),
   location: z.string().trim().max(120),
   capacity: z.coerce.number().int().min(2, "Groups need at least 2 people.").max(30, "Keep groups to 30 or fewer."),
 });
@@ -20,11 +32,10 @@ const GroupSchema = z.object({
 export async function createGroup(_prev: FormState, formData: FormData): Promise<FormState> {
   const user = await requireUser();
   const courseId = String(formData.get("courseId") ?? "");
-  const values = Object.fromEntries(["name", "description", "meeting_time", "location", "capacity"].map((k) => [k, String(formData.get(k) ?? "")]));
+  const values = Object.fromEntries(["name", "description", "duration_minutes", "location", "capacity"].map((k) => [k, String(formData.get(k) ?? "")]));
   const parsed = GroupSchema.safeParse({
     name: formData.get("name"),
     description: formData.get("description") ?? "",
-    meeting_time: "",
     starts_at_iso: formData.get("starts_at_iso") ?? "",
     duration_minutes: formData.get("duration_minutes") ?? "60",
     location: formData.get("location") ?? "",
@@ -34,10 +45,8 @@ export async function createGroup(_prev: FormState, formData: FormData): Promise
     return { values, fieldErrors: Object.fromEntries(parsed.error.issues.map((i) => [String(i.path[0]), i.message])) };
   }
   const { starts_at_iso, duration_minutes, ...fields } = parsed.data;
-  const starts = starts_at_iso ? new Date(starts_at_iso) : null;
-  if (starts && (!Number.isFinite(starts.getTime()) || starts.getTime() < Date.now() - 60000 || starts.getTime() > Date.now() + 2*365*86400000)) {
-    return { values, error: "Choose a future meeting date within two years." };
-  }
+  const starts = starts_at_iso ? meetingStart(starts_at_iso) : null;
+  if (typeof starts === "string") return { values, error: starts };
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("study_groups")
@@ -105,21 +114,32 @@ export async function rsvpToGroup(formData: FormData) {
   refresh();
 }
 
-export async function rescheduleGroup(formData: FormData) {
+/** Organizer sets or changes the meeting time; members get a group message about it. */
+export async function scheduleMeeting(_prev: FormState, formData: FormData): Promise<FormState> {
   const user = await requireUser();
   const groupId = String(formData.get("groupId") ?? "");
-  const iso = String(formData.get("starts_at_iso") ?? "");
   const duration = Number(formData.get("duration_minutes") ?? 60);
-  const starts = new Date(iso);
-  if (!/^[a-f0-9-]{36}$/i.test(groupId) || !Number.isFinite(starts.getTime()) ||
-      starts.getTime() <= Date.now() || ![30,60,90,120,180].includes(duration)) return;
+  if (!UUID.test(groupId)) return { error: "Group not found." };
+  if (!MEETING_DURATIONS.includes(duration)) return { error: "Pick a meeting length." };
+  const starts = meetingStart(String(formData.get("starts_at_iso") ?? ""));
+  if (typeof starts === "string") return { error: starts };
   const supabase = await createClient();
-  const { data, error } = await supabase.from("study_groups").update({
+  const { data: before } = await supabase.from("study_groups").select("meeting_starts_at")
+    .eq("id", groupId).eq("created_by", user.id).maybeSingle();
+  if (!before) return { error: "Only the group organizer can schedule meetings." };
+  const { error } = await supabase.from("study_groups").update({
     meeting_starts_at: starts.toISOString(),
-    meeting_ends_at: new Date(starts.getTime()+duration*60000).toISOString(),
-  }).eq("id",groupId).eq("created_by",user.id).select("id").maybeSingle();
-  if(error || !data) throw new Error("Only the group organizer can reschedule.");
-  // Notify current members via the group message trigger.
-  await supabase.from("group_posts").insert({group_id:groupId,author_id:user.id,body:"Our study group meeting has been rescheduled. See the updated time above."});
+    meeting_ends_at: new Date(starts.getTime() + duration * 60_000).toISOString(),
+  }).eq("id", groupId).eq("created_by", user.id);
+  if (error) return { error: "Couldn't save the meeting time. Try again." };
+  // Posting to the board notifies every member through the group message trigger.
+  await supabase.from("group_posts").insert({
+    group_id: groupId,
+    author_id: user.id,
+    body: before.meeting_starts_at
+      ? "Our study group meeting has been rescheduled. See the updated time above."
+      : "Our study group meeting is scheduled. See the time above and RSVP.",
+  });
   refresh();
+  return { success: "Meeting time saved." };
 }
