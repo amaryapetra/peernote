@@ -10,16 +10,21 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get("type") as EmailOtpType | null;
   const code = searchParams.get("code");
   const nextParam = searchParams.get("next") ?? "/dashboard";
-  const next = nextParam.startsWith("/") && !nextParam.startsWith("//") ? nextParam : "/dashboard";
+  const isRecovery = type === "recovery" || nextParam === "/reset-password";
+  const next = isRecovery ? "/reset-password" : nextParam.startsWith("/") && !nextParam.startsWith("//") && !nextParam.includes("\\") ? nextParam : "/dashboard";
 
-  const supabase = await createClient();
   let ok = false;
-  if (tokenHash && type) {
-    const { error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
-    ok = !error;
-  } else if (code) {
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    ok = !error;
+  try {
+    const supabase = await createClient();
+    if (tokenHash && type) {
+      const { error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
+      ok = !error;
+    } else if (code) {
+      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      ok = !error;
+    }
+  } catch {
+    // Show a usable retry page if the auth service cannot be reached.
   }
 
   const destination = request.nextUrl.clone();
@@ -29,7 +34,7 @@ export async function GET(request: NextRequest) {
     destination.pathname = path;
     if (query) destination.search = `?${query}`;
   } else {
-    destination.pathname = "/login";
+    destination.pathname = isRecovery ? "/forgot-password" : "/login";
     destination.searchParams.set("error", "link");
   }
   return NextResponse.redirect(destination);

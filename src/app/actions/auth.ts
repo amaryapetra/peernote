@@ -104,22 +104,43 @@ export async function logOut() {
 }
 
 export async function requestPasswordReset(_prev: FormState, formData: FormData): Promise<FormState> {
-  const email = z.email().safeParse(String(formData.get("email") ?? "").trim().toLowerCase());
-  if (!email.success) return { fieldErrors: { email: "Enter a valid email address." } };
+  const values = { email: String(formData.get("email") ?? "").trim().toLowerCase() };
+  const email = z.email().safeParse(values.email);
+  if (!email.success) return { values, fieldErrors: { email: "Enter a valid email address." } };
 
-  const supabase = await createClient();
-  await supabase.auth.resetPasswordForEmail(email.data, {
-    redirectTo: `${await siteOrigin()}/auth/confirm?next=${encodeURIComponent("/reset-password")}`,
-  });
-  // Same message either way, so this form can't be used to find out who has an account.
-  return { success: "If that email has an account, a reset link is on its way." };
+  try {
+    const supabase = await createClient();
+    const { error } = await supabase.auth.resetPasswordForEmail(email.data, {
+      redirectTo: `${await siteOrigin()}/auth/confirm?next=${encodeURIComponent("/reset-password")}`,
+    });
+    if (error?.status === 429 || error?.code === "over_email_send_rate_limit" || error?.code === "over_request_rate_limit") {
+      return { values, error: "Too many password-reset requests right now. Please wait before trying again." };
+    }
+    if (error && error.code !== "user_not_found") {
+      return { values, error: "We couldn't send a reset link right now. Please try again later." };
+    }
+  } catch {
+    return { values, error: "We couldn't reach the password-reset service. Please try again in a moment." };
+  }
+  // Never reveal whether the email belongs to an account.
+  return { values, success: "If that email has an account, a reset link is on its way." };
 }
 
 export async function updatePassword(_prev: FormState, formData: FormData): Promise<FormState> {
   const password = String(formData.get("password") ?? "");
   if (password.length < 8) return { fieldErrors: { password: "Use at least 8 characters." } };
-  const supabase = await createClient();
-  const { error } = await supabase.auth.updateUser({ password });
-  if (error) return { error: "Your reset link may have expired. Request a new one." };
-  redirect("/dashboard");
+  if (password.length > 72) return { fieldErrors: { password: "Use 72 characters or fewer." } };
+  if (password !== formData.get("confirmPassword")) return { fieldErrors: { confirmPassword: "Your passwords don't match." } };
+  try {
+    const supabase = await createClient();
+    const { data, error: sessionError } = await supabase.auth.getUser();
+    if (sessionError || !data.user) return { error: "Your reset session has expired. Request a new reset link below." };
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error?.code === "same_password") return { fieldErrors: { password: "Choose a different password from your current one." } };
+    if (error?.code === "weak_password") return { fieldErrors: { password: "Choose a stronger password with a mix of letters, numbers, and symbols." } };
+    if (error) return { error: "Couldn't update your password. Try again, or request a new reset link below." };
+  } catch {
+    return { error: "We couldn't reach the password-reset service. Please try again in a moment." };
+  }
+  return { success: "Your password has been updated. Use your new password the next time you log in." };
 }
