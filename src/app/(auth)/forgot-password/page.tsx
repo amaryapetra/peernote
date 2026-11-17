@@ -17,7 +17,7 @@ export default function ForgotPasswordPage({ searchParams }: PageProps<"/forgot-
   return (
     <>
       <h1 className="font-display text-2xl font-semibold">Reset your password</h1>
-      <p className="mb-6 mt-1 text-sm text-muted">We&apos;ll email you a link to choose a new one.</p>
+      <p className="mb-6 mt-1 text-sm text-muted">Enter the email address on your PeerNote account. We&apos;ll send a secure link to choose a new password.</p>
       <Suspense fallback={<ForgotPasswordForm />}><Form searchParams={searchParams} /></Suspense>
       <p className="mt-6 text-center text-sm text-muted">
         <Link href="/login" className="font-medium text-brand hover:underline">

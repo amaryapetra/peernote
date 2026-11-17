@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import { logIn, requestPasswordReset, signUp, updatePassword } from "@/app/actions/auth";
 import { FormMessage, SubmitButton, echoed } from "./form";
 import { ButtonLink, Field, inputClass } from "./ui";
+import { PasswordInput } from "./password-input";
 
 export function LoginForm({ next, linkError }: { next?: string; linkError?: boolean }) {
   const [state, action] = useActionState(logIn, undefined);
@@ -19,8 +20,13 @@ export function LoginForm({ next, linkError }: { next?: string; linkError?: bool
         <input id="email" name="email" type="email" autoComplete="email" required defaultValue={echoed(state, "email")} className={inputClass} />
       </Field>
       <Field label="Password" htmlFor="password" error={state?.fieldErrors?.password}>
-        <input id="password" name="password" type="password" autoComplete="current-password" required className={inputClass} />
+        <PasswordInput id="password" name="password" label="password" autoComplete="current-password" />
       </Field>
+      <div className="text-right">
+        <Link href="/forgot-password" className="text-sm font-medium text-brand underline-offset-2 hover:underline">
+          Forgot your password?
+        </Link>
+      </div>
       <SubmitButton className="w-full" pendingText="Logging in…">
         Log in
       </SubmitButton>
@@ -42,7 +48,7 @@ export function SignupForm({ next }: { next?: string }) {
         <input id="email" name="email" type="email" autoComplete="email" required placeholder="you@tulane.edu" defaultValue={echoed(state, "email")} className={inputClass} />
       </Field>
       <Field label="Password" htmlFor="password" error={state?.fieldErrors?.password} hint="At least 8 characters.">
-        <input id="password" name="password" type="password" autoComplete="new-password" minLength={8} required className={inputClass} />
+        <PasswordInput id="password" name="password" label="password" autoComplete="new-password" minLength={8} maxLength={72} />
       </Field>
       <SubmitButton className="w-full" pendingText="Creating account…">
         Create account
@@ -82,10 +88,10 @@ export function ResetPasswordForm() {
     <form action={action} className="space-y-4" noValidate>
       <FormMessage state={state} />
       <Field label="New password" htmlFor="password" error={state?.fieldErrors?.password} hint="At least 8 characters.">
-        <input id="password" name="password" type="password" autoComplete="new-password" minLength={8} maxLength={72} required className={inputClass} />
+        <PasswordInput id="password" name="password" label="new password" autoComplete="new-password" minLength={8} maxLength={72} />
       </Field>
       <Field label="Confirm new password" htmlFor="confirmPassword" error={state?.fieldErrors?.confirmPassword}>
-        <input id="confirmPassword" name="confirmPassword" type="password" autoComplete="new-password" minLength={8} maxLength={72} required className={inputClass} />
+        <PasswordInput id="confirmPassword" name="confirmPassword" label="password confirmation" autoComplete="new-password" minLength={8} maxLength={72} />
       </Field>
       <SubmitButton className="w-full" pendingText="Saving…">
         Save new password
