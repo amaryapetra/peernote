@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { SITE_URL } from "@/lib/env";
+import { emailLinkDestinations } from "@/lib/email-link";
+import type { EmailOtpType } from "@supabase/supabase-js";
 import type { FormState } from "@/components/form";
 
 /** Only allow redirects to our own pages, never to another site. */
@@ -144,4 +146,27 @@ export async function updatePassword(_prev: FormState, formData: FormData): Prom
     return { error: "We couldn't reach the password-reset service. Please try again in a moment." };
   }
   return { success: "Your password has been updated. Use your new password the next time you log in." };
+}
+
+const EMAIL_LINK_TYPES = ["signup", "recovery", "invite", "magiclink", "email", "email_change"] as const;
+
+/** Uses the one-time token from an email link once the student presses Continue on /confirm-link. */
+export async function confirmEmailLink(formData: FormData) {
+  const tokenHash = String(formData.get("token_hash") ?? "");
+  const rawType = String(formData.get("type") ?? "");
+  const type = (EMAIL_LINK_TYPES as readonly string[]).includes(rawType) ? (rawType as EmailOtpType) : null;
+  const next = formData.get("next");
+  const { success, failure } = emailLinkDestinations(type, typeof next === "string" && next ? next : null);
+
+  let ok = false;
+  if (tokenHash && type) {
+    try {
+      const supabase = await createClient();
+      const { error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
+      ok = !error;
+    } catch {
+      // Fall through to the retry page if the auth service cannot be reached.
+    }
+  }
+  redirect(ok ? success : failure);
 }
