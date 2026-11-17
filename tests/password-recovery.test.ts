@@ -6,8 +6,9 @@ const auth = vi.hoisted(() => ({
   verifyOtp: vi.fn(), exchangeCodeForSession: vi.fn(),
 }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth }) }));
+vi.mock("next/navigation", () => ({ redirect: (to: string) => { throw new Error(`REDIRECT:${to}`); } }));
 vi.mock("next/headers", () => ({ headers: async () => new Headers({ origin: "https://peernote.example" }) }));
-import { requestPasswordReset, updatePassword } from "@/app/actions/auth";
+import { confirmEmailLink, requestPasswordReset, updatePassword } from "@/app/actions/auth";
 import { GET } from "@/app/auth/confirm/route";
 
 function form(values: Record<string, string>) {
@@ -92,32 +93,47 @@ describe("saving a new password", () => {
 });
 
 describe("email confirmation routing", () => {
-  it("opens the new-password page for recovery tokens without a next parameter", async () => {
+  it("doesn't use up token_hash links when they're opened, so email scanners can't break them", async () => {
     const response = await confirm("token_hash=example&type=recovery");
-    expect(auth.verifyOtp).toHaveBeenCalledWith({ type: "recovery", token_hash: "example" });
-    expect(response.headers.get("location")).toBe("https://peernote.example/reset-password");
+    expect(auth.verifyOtp).not.toHaveBeenCalled();
+    expect(response.headers.get("location")).toBe("https://peernote.example/confirm-link?token_hash=example&type=recovery");
+  });
+  it("keeps the next parameter on the continue page", async () => {
+    const response = await confirm("token_hash=example&type=signup&next=%2Fprofile%3Fwelcome%3D1");
+    expect(response.headers.get("location")).toBe("https://peernote.example/confirm-link?token_hash=example&type=signup&next=%2Fprofile%3Fwelcome%3D1");
   });
   it("supports PKCE recovery links", async () => {
     const response = await confirm("code=example&next=%2Freset-password");
     expect(auth.exchangeCodeForSession).toHaveBeenCalledWith("example");
     expect(response.headers.get("location")).toBe("https://peernote.example/reset-password");
   });
-  it("offers a new link when a recovery token has expired", async () => {
-    auth.verifyOtp.mockResolvedValue({ error: { code: "otp_expired" } });
-    const response = await confirm("token_hash=expired&type=recovery");
-    expect(response.headers.get("location")).toBe("https://peernote.example/forgot-password?error=link");
-  });
   it("offers a new link when PKCE verification fails or the service is offline", async () => {
     auth.exchangeCodeForSession.mockRejectedValue(new Error("offline"));
     const response = await confirm("code=example&next=%2Freset-password");
     expect(response.headers.get("location")).toBe("https://peernote.example/forgot-password?error=link");
   });
-  it("keeps the signup welcome destination", async () => {
-    const response = await confirm("token_hash=example&type=signup&next=%2Fprofile%3Fwelcome%3D1");
-    expect(response.headers.get("location")).toBe("https://peernote.example/profile?welcome=1");
-  });
   it.each(["https://other.example", "//other.example", "/\\other.example"])("rejects external destinations (%s)", async (next) => {
     const response = await confirm(`code=example&next=${encodeURIComponent(next)}`);
     expect(response.headers.get("location")).toBe("https://peernote.example/dashboard");
+  });
+});
+
+describe("pressing Continue on an email link", () => {
+  const press = (values: Record<string, string>) => confirmEmailLink(form(values)).then(() => "none", (e: Error) => e.message);
+  it("verifies a recovery token and opens the new-password page", async () => {
+    expect(await press({ token_hash: "example", type: "recovery" })).toBe("REDIRECT:/reset-password");
+    expect(auth.verifyOtp).toHaveBeenCalledWith({ type: "recovery", token_hash: "example" });
+  });
+  it("keeps the signup welcome destination", async () => {
+    expect(await press({ token_hash: "example", type: "signup", next: "/profile?welcome=1" })).toBe("REDIRECT:/profile?welcome=1");
+  });
+  it("offers a new link when a recovery token has expired", async () => {
+    auth.verifyOtp.mockResolvedValue({ error: { code: "otp_expired" } });
+    expect(await press({ token_hash: "expired", type: "recovery" })).toBe("REDIRECT:/forgot-password?error=link");
+  });
+  it("rejects unknown link types and external destinations", async () => {
+    expect(await press({ token_hash: "example", type: "bogus", next: "//other.example" })).toBe("REDIRECT:/login?error=link");
+    expect(auth.verifyOtp).not.toHaveBeenCalled();
+    expect(await press({ token_hash: "example", type: "signup", next: "//other.example" })).toBe("REDIRECT:/dashboard");
   });
 });
