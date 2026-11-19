@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CreateCourseForm, JoinByCodeForm } from "@/components/course-forms";
+import { acceptCourseInvite } from "@/app/actions/safety";
+import { inviteCodeFromSearchQuery } from "@/lib/course-search";
 import { SemesterCourseFolders } from "@/components/semester-course-folders";
 import { Alert, Card, EmptyState, PageHeader, inputClass } from "@/components/ui";
 import { getViewer } from "@/lib/auth";
@@ -13,6 +15,7 @@ export default async function CoursesPage({ searchParams }: PageProps<"/courses"
   const { profile, supabase } = await getViewer();
   const params = await searchParams;
   const q = typeof params.q === "string" ? params.q.trim().slice(0, 60) : "";
+  const inviteCode = inviteCodeFromSearchQuery(q);
   const myCourses = await getMyCourses();
   const mine = new Set(myCourses.map((c) => c.id));
 
@@ -34,16 +37,22 @@ export default async function CoursesPage({ searchParams }: PageProps<"/courses"
         <h2 id="find-heading" className="font-display text-xl font-semibold">Find a course</h2>
         <form className="flex gap-2" role="search">
           <label htmlFor="q" className="sr-only">
-            Search by course code, name, or professor
+            Search by course code, name, professor, or invitation code
           </label>
-          <input id="q" name="q" defaultValue={q} className={inputClass} placeholder="Search by code, name, or professor (e.g. ECON 3010)" />
+          <input id="q" name="q" defaultValue={q} className={inputClass} placeholder="Course name, code, professor, or 12-character invite code" />
           <button type="submit" className="h-10 shrink-0 rounded-lg bg-brand px-4 text-sm font-medium text-on-brand hover:bg-brand-strong">
             Search
           </button>
         </form>
         {q &&
           (results.length === 0 ? (
-            <EmptyState title={`No courses match “${q}”`}>Be the first: add it below so your classmates can join.</EmptyState>
+            inviteCode ? (
+              <EmptyState title="No course found for that invite code">
+                Check the code with your classmate. The code may have been changed by the course creator.
+              </EmptyState>
+            ) : (
+              <EmptyState title={`No courses match “${q}”`}>Be the first: add it below so your classmates can join.</EmptyState>
+            )
           ) : (
             <ul className="divide-y divide-line rounded-xl border border-line bg-surface">
               {results.map((course) => (
@@ -61,6 +70,16 @@ export default async function CoursesPage({ searchParams }: PageProps<"/courses"
                     <Link href={`/courses/${course.id}`} className="text-sm font-medium text-brand hover:underline">
                       Open
                     </Link>
+                  ) : inviteCode ? (
+                    <form action={acceptCourseInvite}>
+                      <input type="hidden" name="code" value={inviteCode} />
+                      <button
+                        type="submit"
+                        className="h-9 shrink-0 rounded-lg bg-brand px-4 text-sm font-medium text-on-brand hover:bg-brand-strong"
+                      >
+                        Join course
+                      </button>
+                    </form>
                   ) : (
                     <a href="#join-with-code" className="text-sm font-medium text-brand hover:underline">
                       Join with invite code

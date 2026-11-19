@@ -59,6 +59,11 @@ select pg_temp.check((select notes_count from courses where id='10000000-0000-00
 select pg_temp.act('00000000-0000-0000-0000-00000000000b');
 select pg_temp.check((select count(*) from courses) = 0, 'course rows and invite codes hidden from non-members');
 select pg_temp.check((select count(*) from search_courses('MATH',20)) = 1, 'search finds course without leaking its invite code');
+select pg_temp.check((select count(*) from search_courses('ABCDEF123456',20)) = 1, 'full invite code finds matching course without joining');
+select pg_temp.check((select count(*) from search_courses('abcdef123456',20)) = 1, 'lowercase invite code also finds matching course');
+select pg_temp.check((select count(*) from search_courses('ABCDEF000000',20)) = 0, 'incorrect invite code finds no course');
+select pg_temp.check((select count(*) from search_courses('ABCDEF12345',20)) = 0, 'partial invite code does not match');
+select pg_temp.check((select count(*) from enrollments where user_id = auth.uid()) = 0, 'search by invite code does not enroll a student');
 select pg_temp.check((select count(*) from search_courses('DOESNOTEXIST',20)) = 0, 'search respects query');
 select pg_temp.expect_fail($q$select join_code from search_courses('MATH',20)$q$, 'catalog RPC never returns join codes');
 select pg_temp.check((select count(*) from notes) = 0, 'non-member cannot read notes');

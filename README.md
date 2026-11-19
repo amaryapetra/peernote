@@ -159,6 +159,10 @@ Add a new file in `supabase/migrations/` (named with a timestamp so it sorts las
 - Keep pull requests small, ideally under 300 lines.
 
 
+### Course search by invite code
+
+The Find a course search field accepts a class name, public course code, professor name, or **exact 12-character invitation code**. A matching invitation code returns normal course metadata only (never the secret code) and offers a Join course action; searching does not itself enroll the student. The existing database-controlled `join_course_by_code` RPC still enforces bans and membership. Apply `20261117000000_search_course_by_invite_code.sql` before deploying the updated frontend.
+
 ### University email access
 
 New PeerNote signups must use an email ending in exactly `@tulane.edu`. The signup form validates this and `20261029180000_tulane_only_signup.sql` adds a `BEFORE INSERT` trigger on `auth.users` so direct Supabase Auth requests cannot bypass it. Existing accounts are not changed. Keep email verification enabled to establish ownership of a university address.
