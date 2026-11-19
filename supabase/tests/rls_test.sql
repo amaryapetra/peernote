@@ -40,6 +40,9 @@ insert into courses (id, code, title, term, instructor, created_by, join_code)
   values ('10000000-0000-0000-0000-000000000001','MATH 3090','Linear Algebra','Fall 2026','Prof. Lee','00000000-0000-0000-0000-00000000000a','ABCDEF123456');
 select pg_temp.check((select members_count from courses where id='10000000-0000-0000-0000-000000000001') = 1, 'creator auto-enrolled, count=1');
 select pg_temp.expect_fail($q$insert into courses (code,title,term,created_by) values ('X 1','Fake course','Fall 2026','00000000-0000-0000-0000-00000000000b')$q$, 'cannot create course as someone else');
+-- RETURNING is checked before the enroll-creator trigger runs, so createCourse
+-- must choose the id itself rather than insert(...).select("id").
+select pg_temp.expect_fail($q$insert into courses (code,title,term,created_by) values ('X 2','Returning course','Fall 2026','00000000-0000-0000-0000-00000000000a') returning id$q$, 'insert ... returning on courses is blocked (app must not rely on it)');
 select pg_temp.expect_fail($q$update courses set members_count = 999$q$, 'cannot edit counters');
 select pg_temp.expect_fail($q$insert into notes (course_id, author_id, title, lecture_date, content) values ('10000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-00000000000a','Direct','2026-10-01','this is long enough content for a note')$q$, 'students cannot insert notes directly (server-only)');
 reset role;
