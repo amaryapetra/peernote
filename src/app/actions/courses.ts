@@ -34,20 +34,22 @@ export async function createCourse(_prev: FormState, formData: FormData): Promis
     return { values, fieldErrors: Object.fromEntries(parsed.error.issues.map((i) => [String(i.path[0]), i.message])) };
   }
 
+  // Pick the id here instead of reading it back with .select(): courses are
+  // only visible to enrolled members, and the creator is enrolled by an
+  // AFTER INSERT trigger that hasn't run yet when RETURNING is checked, so
+  // insert-and-return fails RLS ("new row violates row-level security").
+  const id = crypto.randomUUID();
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("courses")
-    .insert({ ...parsed.data, created_by: user.id })
-    .select("id")
-    .single();
+  const { error } = await supabase.from("courses").insert({ ...parsed.data, id, created_by: user.id });
 
   if (error) {
     if (error.code === "23505") {
       return { values, error: "This class already exists. Ask an enrolled classmate for its invite code, then join below." };
     }
+    console.error("createCourse failed", error);
     return { values, error: "Couldn't create that course. Try again." };
   }
-  redirect(`/courses/${data.id}?created=1`);
+  redirect(`/courses/${id}?created=1`);
 }
 
 export async function joinByCode(_prev: FormState, formData: FormData): Promise<FormState> {
